@@ -1,0 +1,14 @@
+{
+  "name": "Settle — food & symptom journal",
+  "short_name": "Settle",
+  "description": "Track meals, drinks, and stomach flare-ups to find patterns.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#EEF3ED",
+  "theme_color": "#EEF3ED",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

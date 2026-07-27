@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#EEF3ED">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Settle">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>Settle — food & symptom journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF3ED; --surface:#FBFCFA; --surface-2:#F3F7F2;
+    --ink:#213A33; --ink-soft:#5C7168; --ink-faint:#8C9A92;
+    --line:#DBE5DC; --line-soft:#E7EEE7;
+    --sage:#54876F; --sage-deep:#3B6350; --sage-tint:#E4EEE6;
+    --honey:#CE9440; --honey-tint:#F4E7CC;
+    --sev1:#7FB08A; --sev2:#A9C079; --sev3:#E2C15C; --sev4:#DD9A5A; --sev5:#C96A56;
+    --rose:#C25C5C; --rose-tint:#F3DED9;
+    --shadow:0 1px 2px rgba(33,58,51,.05),0 6px 18px rgba(33,58,51,.06);
+    --shadow-lift:0 8px 30px rgba(33,58,51,.14);
+    --r:16px; --r-lg:22px;
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-t:env(safe-area-inset-top,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
+    font-size:16px; line-height:1.45; -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:none;
+  }
+  h1,h2,h3{margin:0}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:16px;color:var(--ink)}
+
+  .app{max-width:520px;margin:0 auto;min-height:100vh;position:relative}
+  .screen{padding:calc(var(--safe-t) + 14px) 18px 120px;display:none;animation:fade .32s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* header */
+  .head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+  .eyebrow{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--sage);font-weight:600}
+  .greet{font-family:"Fraunces",Georgia,serif;font-weight:500;font-size:30px;line-height:1.05;margin-top:4px;letter-spacing:-.01em}
+  .datepill{font-size:13px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-weight:600;white-space:nowrap}
+
+  /* quick add */
+  .quick{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px}
+  .qbtn{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);transition:transform .12s ease}
+  .qbtn:active{transform:scale(.97)}
+  .qbtn .ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0}
+  .qbtn .lbl{font-weight:600;font-size:15.5px;text-align:left}
+  .qbtn .sub{font-size:12.5px;color:var(--ink-faint);text-align:left;margin-top:-4px}
+  .qbtn.food .ico{background:var(--sage-tint);color:var(--sage-deep)}
+  .qbtn.drink .ico{background:#DDEAF0;color:#3E6B7E}
+  .qbtn.voice{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:11px 14px}
+  .qbtn.voice .ico{width:32px;height:32px;border-radius:9px;background:var(--honey-tint);color:var(--honey)}
+  .qbtn.voice .lbl{font-size:14.5px}
+  .qbtn.voice .sub{margin-top:0}
+  .qbtn.voice .txt{flex:1;display:flex;align-items:baseline;gap:8px}
+  .v-mic{width:76px;height:76px;border-radius:50%;background:var(--sage-deep);color:#fff;display:grid;place-items:center;margin:14px auto 16px;position:relative}
+  .v-mic::after{content:'';position:absolute;inset:-9px;border-radius:50%;border:2px solid var(--sage);animation:pulse 1.5s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+  .v-live{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px;min-height:76px;font-size:15.5px;line-height:1.5;color:var(--ink);margin-bottom:12px}
+  .v-live.faint{color:var(--ink-faint)}
+  .v-tip{font-size:12.5px;color:var(--ink-faint);text-align:center;line-height:1.5;margin-bottom:14px}
+  .qbtn.flare{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;background:linear-gradient(180deg,#fff, #FDF6F4);border-color:var(--rose-tint)}
+  .qbtn.flare .ico{background:var(--rose-tint);color:var(--rose)}
+  .qbtn.flare .txt{flex:1}
+  .qbtn.flare .arrow{color:var(--rose);font-size:20px}
+
+  .sechead{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 12px}
+  .sechead h2{font-family:"Fraunces",serif;font-weight:500;font-size:20px}
+  .sechead .count{font-size:12.5px;color:var(--ink-faint);font-weight:600}
+
+  /* timeline */
+  .timeline{display:flex;flex-direction:column;gap:9px}
+  .entry{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 40px 12px 13px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--shadow);position:relative;cursor:pointer}
+  .entry .dot{width:9px;height:9px;border-radius:50%;margin-top:7px;flex-shrink:0}
+  .entry.food .dot,.entry.meal .dot{background:var(--sage)}
+  .entry.drink .dot{background:#5C93A8}
+  .entry.episode{border-color:var(--rose-tint);background:linear-gradient(180deg,#fff,#FEF8F6)}
+  .entry .body{flex:1;min-width:0}
+  .entry .row1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .entry .name{font-weight:600;font-size:15.5px;overflow-wrap:anywhere}
+  .entry .time{font-size:12px;color:var(--ink-faint);font-weight:600;white-space:nowrap}
+  .entry .meta{font-size:13px;color:var(--ink-soft);margin-top:2px}
+  .entry .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .tag{font-size:11.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft);padding:3px 9px;border-radius:999px;font-weight:600}
+  .tag.symp{background:var(--rose-tint);border-color:var(--rose-tint);color:#9C4A48}
+  .del{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:8px;color:var(--ink-faint);display:grid;place-items:center;z-index:2}
+  .sev-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px;color:#fff}
+  .mline{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line-soft)}
+  .mline:last-of-type{border-bottom:none}
+  .mline .mtxt{flex:1;min-width:0}
+  .mline .mln{font-size:14.5px;font-weight:600;overflow-wrap:anywhere}
+  .mline .mport{font-size:12.5px;color:var(--ink-soft)}
+  .mline .mlx{color:var(--ink-faint);padding:2px 6px;flex-shrink:0;font-size:13px}
+  .edit-hint{font-size:11px;color:var(--ink-faint);font-weight:600;margin-top:8px}
+
+  .empty{text-align:center;color:var(--ink-faint);padding:34px 20px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
+  .empty .big{font-family:"Fraunces",serif;font-size:17px;color:var(--ink-soft);margin-bottom:4px}
+  .empty .small{font-size:13.5px}
+
+  /* banner */
+  .banner{background:var(--honey-tint);border:1px solid #E9D3A0;border-radius:var(--r);padding:12px 14px;display:flex;gap:11px;align-items:center;margin-bottom:16px}
+  .banner .ico{color:var(--honey);flex-shrink:0}
+  .banner .txt{flex:1;font-size:13.5px;line-height:1.35}
+  .banner .txt b{color:var(--ink)}
+  .banner .act{font-weight:700;color:var(--sage-deep);font-size:13.5px;background:#fff;border:1px solid var(--line);padding:7px 12px;border-radius:999px;white-space:nowrap}
+  .banner .x{color:#A98B4E;padding:2px 4px}
+
+  /* bottom nav */
+  .nav{position:fixed;bottom:0;left:0;right:0;background:rgba(251,252,250,.86);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:8px 8px calc(8px + var(--safe-b));z-index:40}
+  .nav-inner{max-width:520px;margin:0 auto;width:100%;display:flex}
+  .navbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;color:var(--ink-faint);font-size:10.5px;font-weight:600;letter-spacing:.02em}
+  .navbtn svg{width:23px;height:23px}
+  .navbtn.on{color:var(--sage-deep)}
+
+  /* sheet / modal */
+  .scrim{position:fixed;inset:0;background:rgba(28,42,37,.42);z-index:50;opacity:0;pointer-events:none;transition:opacity .25s ease}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--bg);border-radius:24px 24px 0 0;max-width:520px;margin:0 auto;transform:translateY(102%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.16)}
+  .sheet.open{transform:translateY(0)}
+  .sheet-grip{width:38px;height:4px;background:var(--line);border-radius:99px;margin:9px auto 2px}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 10px}
+  .sheet-head h3{font-family:"Fraunces",serif;font-weight:500;font-size:21px}
+  .sheet-head .close{color:var(--ink-soft);font-size:15px;font-weight:600;padding:6px 4px}
+  .sheet-body{overflow-y:auto;padding:4px 18px calc(18px + var(--safe-b));-webkit-overflow-scrolling:touch}
+
+  .field{margin-bottom:16px}
+  .field > label,.sublab{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:7px;letter-spacing:.01em}
+  .field .hint,.sublab .hint{font-weight:500;color:var(--ink-faint);font-size:12px}
+  .inp{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:13px 14px;outline:none;transition:border-color .15s,box-shadow .15s}
+  .inp:focus{border-color:var(--sage);box-shadow:0 0 0 3px var(--sage-tint)}
+  textarea.inp{resize:none;min-height:64px;line-height:1.4}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:14px;font-weight:600;color:var(--ink-soft);transition:all .12s}
+  .chip:active{transform:scale(.95)}
+  .chip.on{background:var(--sage-deep);border-color:var(--sage-deep);color:#fff}
+  .chip.symp.on{background:var(--rose);border-color:var(--rose)}
+  .chip.add{border-style:dashed;color:var(--sage);border-color:var(--sage)}
+
+  .pchips{display:flex;gap:7px;margin-top:9px}
+  .pchip{flex:1;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 0;font-size:13px;font-weight:600;color:var(--ink-soft)}
+  .pchip.on{background:var(--sage-tint);border-color:var(--sage);color:var(--sage-deep)}
+
+  /* meal items */
+  .mitem{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px;margin-bottom:11px;box-shadow:var(--shadow)}
+  .mitem .ihead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .mitem .ilab{font-size:11.5px;font-weight:800;color:var(--sage-deep);letter-spacing:.09em;text-transform:uppercase}
+  .mitem .irm{font-size:12.5px;color:var(--ink-faint);font-weight:600}
+  .mitem .inp{background:var(--surface-2)}
+  .mitem .pchip{background:var(--surface-2)}
+  .mitem .chip{background:var(--surface-2)}
+  .mitem .chip.on{background:var(--sage-deep)}
+  .alc-panel{margin-top:11px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:12px;padding:11px}
+  .alc-panel .chip{background:#fff}
+  .alc-panel .chip.on{background:var(--sage-deep)}
+  .alc-panel .inp{background:#fff}
+
+  /* severity slider */
+  .sev-wrap{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:16px 15px}
+  .sev-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .sev-num{font-family:"Fraunces",serif;font-size:34px;font-weight:500;line-height:1}
+  .sev-word{font-weight:700;font-size:14px;padding:5px 12px;border-radius:999px;color:#fff}
+  input[type=range].sev{-webkit-appearance:none;appearance:none;width:100%;height:9px;border-radius:99px;outline:none;background:linear-gradient(90deg,var(--sev1),var(--sev2),var(--sev3),var(--sev4),var(--sev5))}
+  input[type=range].sev::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid var(--ink);box-shadow:0 2px 6px rgba(0,0,0,.2);cursor:pointer}
+  input[type=range].sev::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#fff;border:3px solid var(--ink);cursor:pointer}
+  .sev-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);margin-top:8px;font-weight:600}
+
+  /* remedies */
+  .remedy{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px}
+  .remedy .rtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .remedy .rx{color:var(--ink-faint);font-size:13px;font-weight:600}
+  .eff{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .effbtn{border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:8px 6px;font-size:12.5px;font-weight:600;color:var(--ink-soft);text-align:center}
+  .effbtn.on[data-e="helped_a_lot"]{background:#DFF0E2;border-color:#8DC79B;color:#2E6B44}
+  .effbtn.on[data-e="helped_a_little"]{background:#EAF3DC;border-color:#B8CE86;color:#5B7A2E}
+  .effbtn.on[data-e="no_effect"]{background:#EDEFEE;border-color:#C2CCC6;color:#5C7168}
+  .effbtn.on[data-e="made_worse"]{background:var(--rose-tint);border-color:#DDA;color:#9C4A48}
+  .add-remedy{width:100%;border:1px dashed var(--sage);color:var(--sage);border-radius:12px;padding:12px;font-weight:700;font-size:14px;background:var(--sage-tint)}
+
+  .save-bar{position:sticky;bottom:0;padding-top:12px;margin-top:6px}
+  .save{width:100%;background:var(--sage-deep);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(59,99,80,.3);transition:transform .1s}
+  .save:active{transform:scale(.98)}
+  .save.flare{background:var(--rose)}
+
+  /* calendar */
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .cal-head h2{font-family:"Fraunces",serif;font-weight:500;font-size:22px}
+  .cal-nav{display:flex;gap:8px}
+  .cal-nav button{width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-soft)}
+  .cal-grid{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 12px;box-shadow:var(--shadow)}
+  .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px}
+  .cal-dow span{text-align:center;font-size:11px;font-weight:700;color:var(--ink-faint);letter-spacing:.03em}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .day{aspect-ratio:1;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;color:var(--ink-soft);position:relative;background:var(--surface-2);border:1px solid transparent}
+  .day.blank{background:none}
+  .day.today{border-color:var(--sage);font-weight:800}
+  .day.has-ep{color:#fff}
+  .day .epdot{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9)}
+  .day .logdot{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:var(--sage)}
+  .day .medDot{position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:var(--honey)}
+  .day.has-ep .medDot{background:#fff}
+  .cal-legend{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:16px;font-size:11.5px;color:var(--ink-faint);font-weight:600}
+  .legbar{display:flex;height:9px;width:120px;border-radius:99px;overflow:hidden}
+  .legbar i{flex:1}
+  .cal-summary{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
+  .stat .n{font-family:"Fraunces",serif;font-size:30px;font-weight:500;line-height:1}
+  .stat .l{font-size:12.5px;color:var(--ink-soft);margin-top:5px;font-weight:600}
+
+  /* insights */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:17px;box-shadow:var(--shadow);margin-bottom:14px}
+  .card h3{font-family:"Fraunces",serif;font-weight:500;font-size:18px;margin-bottom:4px}
+  .card .csub{font-size:12.5px;color:var(--ink-faint);margin-bottom:14px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .bar-row .bl{width:104px;font-size:13px;font-weight:600;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-track{flex:1;background:var(--surface-2);border-radius:99px;height:22px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--sage),var(--sage-deep));display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
+  .bar-fill span{font-size:11.5px;font-weight:700;color:#fff}
+  .bar-fill.rose{background:linear-gradient(90deg,var(--sev4),var(--rose))}
+  .disclaimer{font-size:12px;color:var(--ink-faint);line-height:1.5;background:var(--surface-2);border-radius:12px;padding:12px 13px}
+
+  /* meds */
+  .med{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;box-shadow:var(--shadow);margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+  .med .pill{width:38px;height:38px;border-radius:11px;background:var(--honey-tint);color:var(--honey);display:grid;place-items:center;flex-shrink:0}
+  .med.past .pill{background:var(--surface-2);color:var(--ink-faint)}
+  .med .mbody{flex:1;min-width:0}
+  .med .mname{font-weight:700;font-size:15.5px;overflow-wrap:anywhere}
+  .med.past .mname{color:var(--ink-soft)}
+  .med .mdose{font-size:13px;color:var(--ink-soft);margin-top:1px}
+  .med .mdate{font-size:12px;color:var(--ink-faint);margin-top:5px;font-weight:600}
+  .med .mnote{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+  .med .mact{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+  .med .mbtn{font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:99px;border:1px solid var(--line);color:var(--ink-soft);background:var(--surface-2)}
+  .med .mbtn.stop{color:var(--rose);border-color:var(--rose-tint);background:var(--rose-tint)}
+  .med .mbtn.change{color:var(--sage-deep);border-color:var(--sage-tint);background:var(--sage-tint)}
+
+  /* data screen */
+  .data-btn{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 15px;display:flex;align-items:center;gap:13px;box-shadow:var(--shadow);margin-bottom:11px;text-align:left}
+  .data-btn:active{transform:scale(.99)}
+  .data-btn .ico{width:40px;height:40px;border-radius:12px;background:var(--sage-tint);color:var(--sage-deep);display:grid;place-items:center;flex-shrink:0}
+  .data-btn .txt{flex:1}
+  .data-btn .t1{font-weight:700;font-size:15px}
+  .data-btn .t2{font-size:12.5px;color:var(--ink-faint);margin-top:1px}
+  .data-btn.warn .ico{background:var(--rose-tint);color:var(--rose)}
+  .data-btn .chev{color:var(--ink-faint)}
+  .backup-status{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);margin-bottom:18px;text-align:center}
+  .backup-status .ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin:0 auto 10px}
+  .backup-status.ok .ico{background:var(--sage-tint);color:var(--sage-deep)}
+  .backup-status.due .ico{background:var(--honey-tint);color:var(--honey)}
+  .backup-status .bt{font-family:"Fraunces",serif;font-size:17px;font-weight:500}
+  .backup-status .bs{font-size:13px;color:var(--ink-soft);margin-top:3px}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;margin-bottom:11px}
+  .toggle-row .tt{font-weight:600;font-size:14.5px}
+  .toggle-row .ts{font-size:12.5px;color:var(--ink-faint);margin-top:2px;max-width:220px}
+  .switch{width:50px;height:30px;border-radius:99px;background:var(--line);position:relative;transition:background .2s;flex-shrink:0}
+  .switch.on{background:var(--sage)}
+  .switch b{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch.on b{left:23px}
+
+  .toast{position:fixed;bottom:calc(90px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:99px;font-size:14px;font-weight:600;z-index:80;opacity:0;pointer-events:none;transition:all .3s;box-shadow:var(--shadow-lift)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .prompt-box{background:var(--surface-2);border:1px solid var(--line);border-radius:13px;padding:13px;font-size:12.5px;color:var(--ink-soft);line-height:1.5;max-height:150px;overflow-y:auto;margin-bottom:12px;white-space:pre-wrap}
+
+  .foot{text-align:center;font-size:12px;color:var(--ink-faint);padding:20px 0 6px;line-height:1.6}
+  .foot b{color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TODAY -->
+  <section class="screen active" id="screen-today">
+    <div id="backup-banner"></div>
+    <div class="head">
+      <div>
+        <div class="eyebrow">Settle</div>
+        <h1 class="greet" id="greeting">Hello</h1>
+      </div>
+      <div class="datepill" id="today-pill"></div>
+    </div>
+
+    <div class="quick">
+      <button class="qbtn food" onclick="openMeal()">
+        <div class="ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a3 3 0 0 0 6 0V2M9 9v13M18 2c-1.5 0-2.5 1.5-2.5 4v6h5V6c0-2.5-1-4-2.5-4M18 12v10"/></svg>
+        </div>
+        <div class="lbl">Log meal</div>
+        <div class="sub">Main dish, sides & all</div>
+      </button>
+      <button class="qbtn drink" onclick="openDrink()">
+        <div class="ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-1.5 16.5a1 1 0 0 1-1 .9H7.5a1 1 0 0 1-1-.9L5 3zM5.5 8h13"/></svg>
+        </div>
+        <div class="lbl">Log drink</div>
+        <div class="sub">Water, coffee, anything</div>
+      </button>
+      <button class="qbtn voice" onclick="startVoice()">
+        <div class="ico">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg>
+        </div>
+        <div class="txt"><span class="lbl">Log a meal by voice</span><span class="sub">just say what they ate</span></div>
+      </button>
+      <button class="qbtn flare" onclick="openEpisode()">
+        <div class="ico">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-1.8.6-3.2 1.2-4.2M12 22a5 5 0 0 0 5-5"/><circle cx="12" cy="13" r="2.2"/></svg>
+        </div>
+        <div class="txt">
+          <div class="lbl">Log a flare-up</div>
+          <div class="sub">Rate it, note symptoms & remedies</div>
+        </div>
+        <div class="arrow">›</div>
+      </button>
+    </div>
+
+    <div class="sechead">
+      <h2>Today</h2>
+      <span class="count" id="today-count"></span>
+    </div>
+    <div class="timeline" id="today-timeline"></div>
+  </section>
+
+  <!-- CALENDAR -->
+  <section class="screen" id="screen-calendar">
+    <div class="head"><div><div class="eyebrow">Flare map</div><h1 class="greet">Calendar</h1></div></div>
+    <div class="cal-head">
+      <h2 id="cal-month"></h2>
+      <div class="cal-nav">
+        <button onclick="calShift(-1)" aria-label="Previous month">‹</button>
+        <button onclick="calShift(1)" aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+      <div class="cal-days" id="cal-days"></div>
+      <div class="cal-legend">
+        <span>Mild</span>
+        <div class="legbar"><i style="background:var(--sev1)"></i><i style="background:var(--sev2)"></i><i style="background:var(--sev3)"></i><i style="background:var(--sev4)"></i><i style="background:var(--sev5)"></i></div>
+        <span>Severe</span>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--ink-faint);margin-top:9px;font-weight:600">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--honey);vertical-align:middle;margin-right:5px"></span>Med change
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sage);vertical-align:middle;margin:0 5px 0 14px"></span>Food/drink logged
+      </div>
+    </div>
+    <div class="cal-summary" id="cal-summary"></div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="screen" id="screen-insights">
+    <div class="head"><div><div class="eyebrow">Patterns</div><h1 class="greet">Insights</h1></div></div>
+    <div id="insights-body"></div>
+  </section>
+
+  <!-- MEDS -->
+  <section class="screen" id="screen-meds">
+    <div class="head"><div><div class="eyebrow">Medications</div><h1 class="greet">Meds</h1></div></div>
+    <div id="meds-body"></div>
+  </section>
+
+  <!-- DATA -->
+  <section class="screen" id="screen-data">
+    <div class="head"><div><div class="eyebrow">Your data</div><h1 class="greet">Backup</h1></div></div>
+    <div id="backup-status"></div>
+
+    <div class="sechead"><h2>Send to an AI</h2></div>
+    <button class="data-btn" onclick="exportForAI()">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0-4-4m4 4 4-4M4 21h16"/></svg></div>
+      <div class="txt"><div class="t1">Download for AI analysis</div><div class="t2">JSON file, ready to hand to an assistant</div></div>
+      <div class="chev">›</div>
+    </button>
+    <button class="data-btn" onclick="copyAIPrompt()">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></div>
+      <div class="txt"><div class="t1">Copy the analysis prompt</div><div class="t2">Paste this first, then attach the file</div></div>
+      <div class="chev">›</div>
+    </button>
+
+    <div class="sechead" style="margin-top:22px"><h2>Backup & restore</h2></div>
+    <button class="data-btn" onclick="backupNow()">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zM9 12l3 3 3-3M12 15V7"/></svg></div>
+      <div class="txt"><div class="t1">Back up now</div><div class="t2">Saves a full copy to your device</div></div>
+      <div class="chev">›</div>
+    </button>
+    <button class="data-btn" onclick="document.getElementById('import-file').click()">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zM12 17V9M9 12l3-3 3 3"/></svg></div>
+      <div class="txt"><div class="t1">Restore from a backup</div><div class="t2">Load a file you saved earlier</div></div>
+      <div class="chev">›</div>
+    </button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+
+    <div class="toggle-row" style="margin-top:14px" onclick="toggleReminder()">
+      <div><div class="tt">Weekly backup reminder</div><div class="ts">A gentle nudge each week when it's been 7 days.</div></div>
+      <div class="switch" id="reminder-switch"><b></b></div>
+    </div>
+    <button class="data-btn" onclick="openWelcome(false)">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></div>
+      <div class="txt"><div class="t1">Name for the greeting</div><div class="t2">Change or remove it anytime</div></div>
+      <div class="chev">›</div>
+    </button>
+
+    <div class="sechead" style="margin-top:22px"><h2>Danger zone</h2></div>
+    <button class="data-btn warn" onclick="clearAll()">
+      <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg></div>
+      <div class="txt"><div class="t1">Erase everything</div><div class="t2">Back up first — this can't be undone</div></div>
+      <div class="chev">›</div>
+    </button>
+
+    <div class="foot">Everything stays on <b>this device</b>. Nothing is sent anywhere.<br>Back up regularly so you never lose your history.</div>
+  </section>
+
+  <!-- BOTTOM NAV -->
+  <nav class="nav"><div class="nav-inner">
+    <button class="navbtn on" data-tab="today" onclick="go('today')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z"/></svg>
+      Today
+    </button>
+    <button class="navbtn" data-tab="calendar" onclick="go('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>
+      Calendar
+    </button>
+    <button class="navbtn" data-tab="insights" onclick="go('insights')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Insights
+    </button>
+    <button class="navbtn" data-tab="meds" onclick="go('meds')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7zM7 7l7 7"/></svg>
+      Meds
+    </button>
+    <button class="navbtn" data-tab="data" onclick="go('data')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+      Data
+    </button>
+  </div></nav>
+</div>
+
+<!-- SCRIM + SHEET -->
+<div class="scrim" id="scrim" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-grip"></div>
+  <div class="sheet-head">
+    <h3 id="sheet-title"></h3>
+    <button class="close" onclick="closeSheet()">Cancel</button>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- data ---------- */
+const KEY='settle_v1';
+const TRIGGERS=['Spicy','Acidic','Citrus','Tomato','Fried / fatty','Dairy','Caffeine','Alcohol','Carbonated','Chocolate','Sugary','Processed','Gluten','Onion / garlic','Very hot (temp)','Large portion'];
+const DRINK_TRIGGERS=['Caffeine','Alcohol','Carbonated','Acidic','Citrus','Dairy','Sugary','Very hot (temp)','Ice cold'];
+const SYMPTOMS=['Burning','Sharp pain','Nausea','Bloating','Reflux / heartburn','Cramping','Gas','Belching','Fullness','Appetite loss','Vomiting'];
+const EFFECTS=[['helped_a_lot','Helped a lot'],['helped_a_little','Helped a little'],['no_effect','No effect'],['made_worse','Made it worse']];
+const MEALTYPES=['Breakfast','Lunch','Dinner','Snack'];
+const ALC_TYPES=['Beer','Wine','Spirits','Cocktail','Cider','Seltzer','Other'];
+const ALC_SUB={
+  'Wine':['Red','White','Rosé','Sparkling','Dessert / fortified'],
+  'Beer':['Lager','Ale','IPA','Stout','Wheat','Sour'],
+  'Spirits':['Whiskey','Bourbon','Vodka','Gin','Rum','Tequila','Brandy','Other'],
+  'Cocktail':[],'Cider':[],'Seltzer':[],'Other':[]
+};
+const COCKTAIL_SPIRITS=['Vodka','Whiskey','Bourbon','Rum','Tequila','Gin','Brandy','Other'];
+
+let db=load();
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.entries){if(!d.medications)d.medications=[];return d;}}catch(e){}
+  return {version:2,entries:[],episodes:[],medications:[],settings:{lastBackup:null,weeklyReminder:true,bannerDismissed:null}};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){toast('Could not save — storage may be full');}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+/* ---------- helpers ---------- */
+function nowLocalInput(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
+function isoToLocalInput(iso){const d=new Date(iso);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtDate(iso){return new Date(iso+(iso.length<=10?'T12:00':'')).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});}
+function dayKey(iso){const d=new Date(iso);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayKey(){return dayKey(new Date().toISOString());}
+function sevColor(v){return ['--sev1','--sev1','--sev2','--sev2','--sev3','--sev3','--sev4','--sev4','--sev5','--sev5'][Math.max(0,Math.min(9,v-1))];}
+function sevWord(v){return v<=2?'Mild':v<=4?'Mild–moderate':v<=6?'Moderate':v<=8?'Severe':'Very severe';}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function guessMealType(){const h=new Date().getHours();return h<11?'Breakfast':h<15?'Lunch':h<21?'Dinner':'Snack';}
+function refreshViews(){renderToday();if(document.getElementById('screen-calendar').classList.contains('active'))renderCalendar();}
+
+/* ---------- navigation ---------- */
+function go(tab){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  window.scrollTo(0,0);
+  if(tab==='calendar')renderCalendar();
+  if(tab==='insights')renderInsights();
+  if(tab==='meds')renderMeds();
+  if(tab==='data')renderData();
+}
+
+/* ---------- sheet ---------- */
+function openSheetUI(title){
+  document.getElementById('sheet-title').textContent=title;
+  document.getElementById('scrim').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheet-body').scrollTop=0;
+}
+function closeSheet(){
+  if(typeof stopVoiceRec==='function')stopVoiceRec();
+  document.getElementById('scrim').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+}
+
+/* ---------- generic chip helpers ---------- */
+function tog(el){el.classList.toggle('on');}
+function pickOne(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
+function pickPortion(el,val,inputId){
+  el.parentElement.querySelectorAll('.pchip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById(inputId).value=val;
+}
+function addCustomTag(containerId){
+  const name=prompt('Add a tag');
+  if(!name)return;
+  const c=document.getElementById(containerId);
+  const b=document.createElement('button');
+  b.className='chip on'+(containerId==='ep-symptoms'?' symp':'');
+  b.textContent=name.trim();
+  b.onclick=function(){tog(this)};
+  c.insertBefore(b,c.querySelector('.add'));
+}
+function collectTags(id){return [...document.querySelectorAll('#'+id+' .chip.on')].filter(c=>c.id.indexOf('alc-chip')!==0).map(c=>c.textContent).concat([...document.querySelectorAll('#'+id+' .chip.on')].filter(c=>c.id.indexOf('alc-chip')===0).map(()=>'Alcohol'));}
+
+/* ---------- alcohol drill-down (per-index so meals can have several) ---------- */
+function tagChipsHTML(containerId,ix,triggers,selected,alc){
+  selected=selected||[];
+  const custom=selected.filter(t=>t!=='Alcohol'&&triggers.indexOf(t)<0);
+  return `<div class="chips" id="${containerId}">
+    ${triggers.map(t=>t==='Alcohol'
+      ?`<button class="chip ${(alc||selected.indexOf('Alcohol')>=0)?'on':''}" id="alc-chip-${ix}" onclick="togAlcohol(this,'${ix}')">Alcohol</button>`
+      :`<button class="chip ${selected.indexOf(t)>=0?'on':''}" onclick="tog(this)">${t}</button>`).join('')}
+    ${custom.map(t=>`<button class="chip on" onclick="tog(this)">${esc(t)}</button>`).join('')}
+    <button class="chip add" onclick="addCustomTag('${containerId}')">+ Add</button>
+  </div>`;
+}
+function alcPanelHTML(ix,alc){
+  const show=alc?'block':'none';
+  return `<div class="alc-panel" id="alc-panel-${ix}" style="display:${show}">
+    <label class="sublab">What kind of alcohol?</label>
+    <div class="chips" id="alc-types-${ix}">
+      ${ALC_TYPES.map(t=>`<button class="chip ${(alc&&alc.type===t)?'on':''}" onclick="pickAlcType(this,'${t}','${ix}')">${t}</button>`).join('')}
+    </div>
+    <div id="alc-sub-wrap-${ix}" style="display:none;margin-top:11px">
+      <label class="sublab" id="alc-sub-label-${ix}">Which type?</label>
+      <div class="chips" id="alc-subs-${ix}"></div>
+    </div>
+    <input class="inp" id="alc-detail-${ix}" placeholder="Specific drink — e.g. Cabernet, Margarita (optional)" value="${alc&&alc.detail?esc(alc.detail):''}" autocomplete="off" style="margin-top:11px">
+  </div>`;
+}
+function initAlcPanel(ix,alc){if(alc&&alc.type)renderAlcSubs(ix,alc.type,alc);}
+function renderAlcSubs(ix,type,pre){
+  const wrap=document.getElementById('alc-sub-wrap-'+ix);
+  const subsEl=document.getElementById('alc-subs-'+ix);
+  const lab=document.getElementById('alc-sub-label-'+ix);
+  if(type==='Cocktail'){
+    lab.innerHTML='Which spirits were in it? <span class="hint">tap all that apply</span>';
+    subsEl.innerHTML=COCKTAIL_SPIRITS.map(s=>`<button class="chip ${(pre&&pre.spirits&&pre.spirits.indexOf(s)>=0)?'on':''}" onclick="tog(this)">${s}</button>`).join('');
+    wrap.style.display='block';
+  }else{
+    const subs=ALC_SUB[type]||[];
+    if(subs.length){
+      lab.textContent='Which type?';
+      subsEl.innerHTML=subs.map(s=>`<button class="chip ${(pre&&pre.subtype===s)?'on':''}" onclick="pickOne(this)">${s}</button>`).join('');
+      wrap.style.display='block';
+    }else{
+      wrap.style.display='none';subsEl.innerHTML='';
+    }
+  }
+}
+function togAlcohol(el,ix){
+  el.classList.toggle('on');
+  const on=el.classList.contains('on');
+  const panel=document.getElementById('alc-panel-'+ix);
+  if(!panel)return;
+  panel.style.display=on?'block':'none';
+  if(!on){
+    panel.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+    document.getElementById('alc-sub-wrap-'+ix).style.display='none';
+    document.getElementById('alc-subs-'+ix).innerHTML='';
+    document.getElementById('alc-detail-'+ix).value='';
+  }else{
+    panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+}
+function pickAlcType(el,type,ix){pickOne(el);renderAlcSubs(ix,type,null);}
+function collectAlcohol(ix){
+  const chip=document.getElementById('alc-chip-'+ix);
+  if(!chip||!chip.classList.contains('on'))return null;
+  const a={};
+  const type=document.querySelector('#alc-types-'+ix+' .chip.on');
+  if(type)a.type=type.textContent;
+  if(a.type==='Cocktail'){
+    const spirits=[...document.querySelectorAll('#alc-subs-'+ix+' .chip.on')].map(c=>c.textContent);
+    if(spirits.length)a.spirits=spirits;
+  }else{
+    const sub=document.querySelector('#alc-subs-'+ix+' .chip.on');
+    if(sub)a.subtype=sub.textContent;
+  }
+  const detail=document.getElementById('alc-detail-'+ix).value.trim();
+  if(detail)a.detail=detail;
+  return Object.keys(a).length?a:null;
+}
+function alcLabel(a){
+  if(!a)return null;
+  const parts=['Alcohol',a.type];
+  if(a.spirits&&a.spirits.length)parts.push(a.spirits.join(' + '));
+  else if(a.subtype)parts.push(a.subtype);
+  if(a.detail)parts.push(a.detail);
+  return parts.filter(Boolean).join(' · ');
+}
+
+/* ---------- voice logging ---------- */
+let voiceRec=null,voiceText='',pendingVoice=null;
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Voice input isn't supported in this browser");return;}
+  voiceText='';
+  openSheetUI('Say the meal');
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="v-mic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg></div>
+    <div class="v-live faint" id="v-live">Listening…</div>
+    <div class="v-tip">Say it naturally, like<br><b>"Dinner — grilled chicken, a bowl of rice, and a large sweet tea"</b><br>You'll get to check everything before it saves.</div>
+    <div class="save-bar"><button class="save" onclick="finishVoice()">Done — review it</button></div>`;
+  try{
+    voiceRec=new SR();
+    voiceRec.continuous=true;
+    voiceRec.interimResults=true;
+    let finalT='';
+    voiceRec.onresult=e=>{
+      let interim='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const r=e.results[i];
+        if(r.isFinal)finalT+=r[0].transcript+' ';
+        else interim+=r[0].transcript;
+      }
+      voiceText=(finalT+' '+interim).replace(/\s+/g,' ').trim();
+      const live=document.getElementById('v-live');
+      if(live){live.textContent=voiceText||'Listening…';live.classList.toggle('faint',!voiceText);}
+    };
+    voiceRec.onerror=e=>{
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){toast('Microphone permission was denied');closeSheet();}
+    };
+    voiceRec.start();
+  }catch(err){toast('Could not start the microphone');}
+}
+function stopVoiceRec(){if(voiceRec){try{voiceRec.stop();}catch(e){}voiceRec=null;}}
+function finishVoice(){
+  stopVoiceRec();
+  const t=voiceText.trim();
+  if(!t){toast("Didn't catch anything — try again");return;}
+  const p=parseVoiceMeal(t);
+  if(!p.items.length){toast("Couldn't pick out any items — try rephrasing");return;}
+  pendingVoice=p;
+  openMeal(p.mealType||null);
+  toast('Check it over, then save');
+}
+function parseVoiceMeal(raw){
+  let t=' '+raw.toLowerCase().replace(/[.!?]/g,' ')+' ';
+  let mealType=null;
+  [['breakfast','Breakfast'],['brunch','Breakfast'],['lunch','Lunch'],['dinner','Dinner'],['supper','Dinner'],['snack','Snack']].forEach(p=>{if(!mealType&&t.indexOf(p[0])>=0)mealType=p[1];});
+  t=t.replace(/\b(for )?(breakfast|brunch|lunch|dinner|supper|a snack|snack)\b/g,' ');
+  t=t.replace(/\b(i just had|they had|she had|he had|i had|i ate|i drank|we had|just had|had|ate|drank|was|were|log|logging|today|this morning|tonight|this evening)\b/g,' ');
+  const segs=t.split(/,|;| and then | and also | and | plus | with a side of | along with /).map(s=>s.trim()).filter(Boolean);
+  const items=[];
+  segs.forEach(seg=>{
+    let portion='';
+    const m1=seg.match(/^(a|an|one|two|three|half a|a half|a small|a medium|a large|a big) (bowl|plate|cup|glass|mug|slice|piece|serving|scoop|handful|bottle|can|carton)s? of (.+)$/);
+    if(m1){
+      let qty=m1[1];
+      if(qty==='a'||qty==='an')qty='1';
+      portion=(qty+' '+m1[2]).trim();
+      seg=m1[3];
+    }
+    const sz=seg.match(/^(a |an )?(small|medium|large|big) (.+)$/);
+    if(sz){
+      if(!portion)portion=sz[2]==='big'?'Large':sz[2].charAt(0).toUpperCase()+sz[2].slice(1);
+      seg=sz[3];
+    }
+    const oz=seg.match(/^(\d+\s?(?:oz|ounce|ounces)) (?:of )?(.+)$/);
+    if(oz){portion=oz[1];seg=oz[2];}
+    const two=seg.match(/^(two|three|four|2|3|4) (.+)$/);
+    if(two&&!portion){portion=two[1];seg=two[2];}
+    seg=seg.replace(/^(a|an|the|some|of) /,'').replace(/\s+/g,' ').trim();
+    if(!seg||seg.length<2)return;
+    const tags=[];
+    const MAP=[
+      [/spicy|hot sauce|jalapeno|jalapeño|sriracha|buffalo/,'Spicy'],
+      [/fried|fries|crispy|greasy|bacon|sausage/,'Fried / fatty'],
+      [/tomato|marinara|salsa|ketchup|spaghetti sauce/,'Tomato'],
+      [/cheese|milk|cream|yogurt|dairy|ice cream|queso/,'Dairy'],
+      [/coffee|espresso|latte|energy drink|mountain dew|sweet tea|iced tea|\btea\b|cola|coke|pepsi/,'Caffeine'],
+      [/\bbeer\b|\bwine\b|whiskey|bourbon|vodka|\brum\b|tequila|\bgin\b|cocktail|margarita|alcohol/,'Alcohol'],
+      [/soda|sparkling|carbonated|cola|coke|pepsi|sprite/,'Carbonated'],
+      [/lemon|lime|orange juice|citrus|grapefruit/,'Citrus'],
+      [/chocolate|brownie/,'Chocolate'],
+      [/garlic|onion/,'Onion / garlic']
+    ];
+    MAP.forEach(p=>{if(p[0].test(seg)&&tags.indexOf(p[1])<0)tags.push(p[1]);});
+    items.push({name:seg.charAt(0).toUpperCase()+seg.slice(1),portion,tags});
+  });
+  return {mealType,items};
+}
+
+/* ---------- frequent quick-picks ---------- */
+let _commonDrinks=[],_commonSnacks=[];
+function topByName(list,max){
+  const map={};
+  list.forEach(e=>{
+    if(!e||!e.name)return;
+    const k=e.name.trim().toLowerCase();
+    if(!k)return;
+    if(!map[k])map[k]={count:0,latest:e};
+    map[k].count++;
+    map[k].latest=e; // list is chronological, so this ends as the most recent
+  });
+  return Object.values(map).sort((a,b)=>b.count-a.count).slice(0,max||6).map(x=>x.latest);
+}
+function commonDrinks(){
+  return topByName(db.entries.filter(e=>e.type==='drink'),6);
+}
+function commonSnackItems(){
+  const items=[];
+  db.entries.forEach(e=>{
+    if(e.type==='meal'&&e.mealType==='Snack'&&e.items)e.items.forEach(it=>items.push(it));
+  });
+  return topByName(items,6);
+}
+
+/* ---------- meal form (also handles snacks & editing; converts legacy food entries) ---------- */
+let mealItemN=0;
+function openMeal(preset,id){
+  const raw=id?db.entries.find(e=>e.id===id):null;
+  let m=null;
+  if(raw){
+    m=raw.type==='meal'?raw:{mealType:raw.mealType||'Snack',datetime:raw.datetime,notes:raw.notes,items:[{name:raw.name,portion:raw.portion,tags:raw.tags||[],alcohol:raw.alcohol||null}]};
+  }
+  mealItemN=0;
+  const mt=m?(m.mealType||guessMealType()):(preset||guessMealType());
+  openSheetUI(id?'Edit meal':(preset==='Snack'?'Log a snack':'Log meal'));
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="field">
+      <label>Which meal?</label>
+      <div class="chips" id="ml-type">
+        ${MEALTYPES.map(t=>`<button class="chip ${t===mt?'on':''}" onclick="pickMealType(this)">${t}</button>`).join('')}
+      </div>
+    </div>
+    <div class="field" id="snack-quick" style="display:none">
+      <label>Frequent snacks <span class="hint">tap to add</span></label>
+      <div class="chips" id="snack-quick-chips"></div>
+    </div>
+    <div class="field">
+      <label>When?</label>
+      <input class="inp" type="datetime-local" id="ml-time" value="${m?isoToLocalInput(m.datetime):nowLocalInput()}">
+    </div>
+    <label class="sublab">What was in it? <span class="hint">each item separately — sharper patterns</span></label>
+    <div id="meal-items"></div>
+    <button class="add-remedy" style="margin-bottom:16px" onclick="addMealItem()">+ Add another item</button>
+    <div class="field">
+      <label>Note <span class="hint">optional — for the whole meal</span></label>
+      <textarea class="inp" id="ml-note" placeholder="Anything worth remembering">${m&&m.notes?esc(m.notes):''}</textarea>
+    </div>
+    <div class="save-bar"><button class="save" onclick="saveMeal(${id?`'${id}'`:'null'})">${id?'Save changes':'Save meal'}</button></div>`;
+  if(m&&m.items&&m.items.length)m.items.forEach(it=>addMealItem(it));
+  else if(!id&&pendingVoice&&pendingVoice.items.length){pendingVoice.items.forEach(it=>addMealItem(it));pendingVoice=null;}
+  else addMealItem();
+  pendingVoice=null;
+  _commonSnacks=commonSnackItems();
+  const sq=document.getElementById('snack-quick-chips');
+  if(sq)sq.innerHTML=_commonSnacks.map((s,i)=>`<button class="chip" onclick="quickSnack(${i})">${esc(s.name)}</button>`).join('');
+  updateSnackQuick();
+  if(!id)setTimeout(()=>{const f=document.querySelector('#meal-items .mitem input');if(f)f.focus();},350);
+}
+function pickMealType(el){pickOne(el);updateSnackQuick();}
+function updateSnackQuick(){
+  const box=document.getElementById('snack-quick');
+  if(!box)return;
+  const on=document.querySelector('#ml-type .chip.on');
+  box.style.display=(on&&on.textContent==='Snack'&&_commonSnacks.length)?'block':'none';
+}
+function quickSnack(i){
+  const pre=_commonSnacks[i];if(!pre)return;
+  const items=document.querySelectorAll('#meal-items .mitem');
+  if(items.length===1){
+    const ix=items[0].dataset.ix;
+    if(!document.getElementById('mi-name-'+ix).value.trim()){items[0].remove();}
+  }
+  addMealItem({name:pre.name,portion:pre.portion||'',tags:pre.tags||[],alcohol:pre.alcohol||null});
+  const first=document.querySelector('#meal-items .mitem .ilab');
+  if(first)first.textContent='Main item';
+}
+function addMealItem(pre){
+  pre=pre||{};
+  const i=mealItemN++;
+  const wrap=document.createElement('div');
+  wrap.className='mitem';wrap.id='mi-'+i;wrap.dataset.ix=i;
+  const n=document.querySelectorAll('#meal-items .mitem').length;
+  wrap.innerHTML=`
+    <div class="ihead">
+      <span class="ilab">${n===0?'Main item':'Item'}</span>
+      <button class="irm" onclick="removeMealItem(${i})">Remove</button>
+    </div>
+    <input class="inp" id="mi-name-${i}" placeholder="${n===0?'e.g. Grilled chicken':'e.g. Mashed potatoes'}" value="${pre.name?esc(pre.name):''}" autocomplete="off">
+    <input class="inp" id="mi-portion-${i}" placeholder="How much? e.g. 1 plate, half a cup" value="${pre.portion?esc(pre.portion):''}" autocomplete="off" style="margin-top:9px">
+    <div class="pchips">
+      ${['Small','Medium','Large'].map(p=>`<div class="pchip ${pre.portion===p?'on':''}" onclick="pickPortion(this,'${p}','mi-portion-${i}')">${p}</div>`).join('')}
+    </div>
+    <div style="margin-top:11px">
+      <label class="sublab">Trigger tags <span class="hint">optional</span></label>
+      ${tagChipsHTML('mi-tags-'+i,i,TRIGGERS,pre.tags||[],pre.alcohol||null)}
+    </div>
+    ${alcPanelHTML(i,pre.alcohol||null)}`;
+  document.getElementById('meal-items').appendChild(wrap);
+  initAlcPanel(i,pre.alcohol||null);
+}
+function removeMealItem(i){
+  const items=document.querySelectorAll('#meal-items .mitem');
+  if(items.length<=1){toast('A meal needs at least one item');return;}
+  document.getElementById('mi-'+i).remove();
+  const first=document.querySelector('#meal-items .mitem .ilab');
+  if(first)first.textContent='Main item';
+}
+function saveMeal(id){
+  const items=[];
+  document.querySelectorAll('#meal-items .mitem').forEach(w=>{
+    const ix=w.dataset.ix;
+    const name=document.getElementById('mi-name-'+ix).value.trim();
+    if(!name)return;
+    const item={name,portion:document.getElementById('mi-portion-'+ix).value.trim(),tags:collectTags('mi-tags-'+ix)};
+    const alc=collectAlcohol(ix);
+    if(alc)item.alcohol=alc;
+    items.push(item);
+  });
+  if(!items.length){toast('Name at least one item first');return;}
+  const mtEl=document.querySelector('#ml-type .chip.on');
+  const entry={
+    id:id||uid(),type:'meal',
+    mealType:mtEl?mtEl.textContent:guessMealType(),
+    datetime:new Date(document.getElementById('ml-time').value).toISOString(),
+    items,
+    notes:document.getElementById('ml-note').value.trim()
+  };
+  if(id){
+    const ix=db.entries.findIndex(e=>e.id===id);
+    if(ix>=0)db.entries[ix]=entry;else db.entries.push(entry);
+  }else db.entries.push(entry);
+  save();closeSheet();refreshViews();
+  toast(id?'Meal updated':'Meal logged');
+}
+
+/* ---------- drink form ---------- */
+function openDrink(id,pre){
+  const m=id?db.entries.find(e=>e.id===id):(pre||null);
+  const isEdit=!!id;
+  if(!isEdit)_commonDrinks=commonDrinks();
+  const quickRow=(!isEdit&&_commonDrinks.length)?`
+    <div class="field">
+      <label>Frequent drinks <span class="hint">tap to fill in</span></label>
+      <div class="chips">
+        ${_commonDrinks.map((d,i)=>`<button class="chip ${m&&m.name===d.name?'on':''}" onclick="quickDrink(${i})">${esc(d.name)}</button>`).join('')}
+      </div>
+    </div>`:'';
+  openSheetUI(isEdit?'Edit drink':'Log drink');
+  document.getElementById('sheet-body').innerHTML=`
+    ${quickRow}
+    <div class="field">
+      <label>What did they drink?</label>
+      <input class="inp" id="d-name" placeholder="e.g. Black coffee" value="${m?esc(m.name):''}" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>How much? <span class="hint">portion</span></label>
+      <input class="inp" id="d-portion" placeholder="e.g. 1 mug, 12 oz" value="${m&&m.portion?esc(m.portion):''}" autocomplete="off">
+      <div class="pchips">
+        ${['Small','Medium','Large'].map(p=>`<div class="pchip ${m&&m.portion===p?'on':''}" onclick="pickPortion(this,'${p}','d-portion')">${p}</div>`).join('')}
+      </div>
+    </div>
+    <div class="field">
+      <label>When?</label>
+      <input class="inp" type="datetime-local" id="d-time" value="${isEdit?isoToLocalInput(m.datetime):nowLocalInput()}">
+    </div>
+    <div class="field">
+      <label>Trigger tags <span class="hint">optional — helps spot patterns</span></label>
+      ${tagChipsHTML('d-tags','d',DRINK_TRIGGERS,m?(m.tags||[]):[],m?m.alcohol:null)}
+    </div>
+    ${alcPanelHTML('d',m?m.alcohol:null)}
+    <div class="field" style="margin-top:16px">
+      <label>Note <span class="hint">optional</span></label>
+      <textarea class="inp" id="d-note" placeholder="Anything worth remembering">${isEdit&&m.notes?esc(m.notes):''}</textarea>
+    </div>
+    <div class="save-bar"><button class="save" onclick="saveDrink(${isEdit?`'${id}'`:'null'})">${isEdit?'Save changes':'Save drink'}</button></div>`;
+  initAlcPanel('d',m?m.alcohol:null);
+  if(!isEdit&&!pre)setTimeout(()=>document.getElementById('d-name').focus(),350);
+}
+function quickDrink(i){
+  const d=_commonDrinks[i];if(!d)return;
+  openDrink(null,{name:d.name,portion:d.portion||'',tags:d.tags||[],alcohol:d.alcohol||null});
+}
+function saveDrink(id){
+  const name=document.getElementById('d-name').value.trim();
+  if(!name){toast('Add a name first');return;}
+  const entry={
+    id:id||uid(),type:'drink',name,
+    portion:document.getElementById('d-portion').value.trim(),
+    datetime:new Date(document.getElementById('d-time').value).toISOString(),
+    tags:collectTags('d-tags'),
+    notes:document.getElementById('d-note').value.trim()
+  };
+  const alc=collectAlcohol('d');
+  if(alc)entry.alcohol=alc;
+  if(id){
+    const ix=db.entries.findIndex(e=>e.id===id);
+    if(ix>=0)db.entries[ix]=entry;else db.entries.push(entry);
+  }else db.entries.push(entry);
+  save();closeSheet();refreshViews();
+  toast(id?'Drink updated':'Drink logged');
+}
+
+/* ---------- episode (with editing) ---------- */
+let remedyCount=0;
+function openEpisode(id){
+  const m=id?db.episodes.find(e=>e.id===id):null;
+  openSheetUI(id?'Edit flare-up':'Log a flare-up');
+  remedyCount=0;
+  const sev=m?m.severity:5;
+  const selSym=m?(m.symptoms||[]):[];
+  const customSym=selSym.filter(s=>SYMPTOMS.indexOf(s)<0);
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="field">
+      <label>How bad is it?</label>
+      <div class="sev-wrap">
+        <div class="sev-top">
+          <span class="sev-num" id="sev-num">${sev}</span>
+          <span class="sev-word" id="sev-word"></span>
+        </div>
+        <input type="range" class="sev" id="ep-sev" min="1" max="10" value="${sev}" oninput="updSev(this.value)">
+        <div class="sev-scale"><span>1</span><span>5</span><span>10</span></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>When did it start?</label>
+      <input class="inp" type="datetime-local" id="ep-time" value="${m?isoToLocalInput(m.datetime):nowLocalInput()}">
+    </div>
+    <div class="field">
+      <label>Symptoms <span class="hint">tap all that apply</span></label>
+      <div class="chips" id="ep-symptoms">
+        ${SYMPTOMS.map(s=>`<button class="chip symp ${selSym.indexOf(s)>=0?'on':''}" onclick="tog(this)">${s}</button>`).join('')}
+        ${customSym.map(s=>`<button class="chip symp on" onclick="tog(this)">${esc(s)}</button>`).join('')}
+        <button class="chip add" onclick="addCustomTag('ep-symptoms')">+ Add</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>How long did it last? <span class="hint">optional</span></label>
+      <input class="inp" id="ep-dur" placeholder="e.g. 2 hours, most of the evening" value="${m&&m.duration?esc(m.duration):''}" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Remedies tried <span class="hint">and whether they helped</span></label>
+      <div id="remedy-list"></div>
+      <button class="add-remedy" onclick="addRemedy()">+ Add a remedy</button>
+    </div>
+    <div class="field">
+      <label>Notes <span class="hint">optional</span></label>
+      <textarea class="inp" id="ep-note" placeholder="What might have set it off? How did it feel?">${m&&m.notes?esc(m.notes):''}</textarea>
+    </div>
+    <div class="save-bar"><button class="save flare" onclick="saveEpisode(${id?`'${id}'`:'null'})">${id?'Save changes':'Save flare-up'}</button></div>`;
+  updSev(sev);
+  if(m&&m.remedies)m.remedies.forEach(r=>addRemedy(r));
+}
+function updSev(v){
+  v=+v;
+  document.getElementById('sev-num').textContent=v;
+  const w=document.getElementById('sev-word');
+  w.textContent=sevWord(v);
+  const col=getComputedStyle(document.documentElement).getPropertyValue(sevColor(v));
+  w.style.background=col;
+  document.getElementById('sev-num').style.color=col;
+}
+function addRemedy(pre){
+  pre=pre||{};
+  const i=remedyCount++;
+  const wrap=document.createElement('div');
+  wrap.className='remedy';wrap.id='rem-'+i;
+  wrap.innerHTML=`
+    <div class="rtop">
+      <input class="inp rname-inp" id="rem-name-${i}" placeholder="e.g. Antacid, ginger tea, rest" value="${pre.name?esc(pre.name):''}" style="border:none;padding:0;background:none;font-weight:600" autocomplete="off">
+      <button class="rx" onclick="document.getElementById('rem-${i}').remove()">Remove</button>
+    </div>
+    <div class="eff" data-rem="${i}">
+      ${EFFECTS.map(e=>`<button class="effbtn ${pre.effect===e[0]?'on':''}" data-e="${e[0]}" onclick="pickEff(this)">${e[1]}</button>`).join('')}
+    </div>`;
+  document.getElementById('remedy-list').appendChild(wrap);
+  if(!pre.name)document.getElementById('rem-name-'+i).focus();
+}
+function pickEff(el){
+  el.parentElement.querySelectorAll('.effbtn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function saveEpisode(id){
+  const remedies=[];
+  document.querySelectorAll('#remedy-list .remedy').forEach(r=>{
+    const name=r.querySelector('.rname-inp').value.trim();
+    const eff=r.querySelector('.effbtn.on');
+    if(name)remedies.push({name,effect:eff?eff.dataset.e:null});
+  });
+  const ep={
+    id:id||uid(),
+    datetime:new Date(document.getElementById('ep-time').value).toISOString(),
+    severity:+document.getElementById('ep-sev').value,
+    symptoms:collectTags('ep-symptoms'),
+    duration:document.getElementById('ep-dur').value.trim(),
+    remedies,
+    notes:document.getElementById('ep-note').value.trim()
+  };
+  if(id){
+    const ix=db.episodes.findIndex(e=>e.id===id);
+    if(ix>=0)db.episodes[ix]=ep;else db.episodes.push(ep);
+  }else db.episodes.push(ep);
+  save();closeSheet();refreshViews();
+  toast(id?'Flare-up updated':'Flare-up logged — hope it eases soon');
+}
+
+/* ---------- render today ---------- */
+function renderToday(){
+  const g=document.getElementById('greeting');
+  const h=new Date().getHours();
+  const base=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  g.textContent=db.settings.name?base+', '+db.settings.name:base;
+  document.getElementById('today-pill').textContent=new Date().toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'});
+
+  const tk=todayKey();
+  const items=[
+    ...db.entries.filter(e=>dayKey(e.datetime)===tk).map(e=>({...e,_k:e.type})),
+    ...db.episodes.filter(e=>dayKey(e.datetime)===tk).map(e=>({...e,_k:'episode'}))
+  ].sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+
+  document.getElementById('today-count').textContent=items.length?items.length+(items.length===1?' entry':' entries'):'';
+  const tl=document.getElementById('today-timeline');
+
+  if(!items.length){
+    tl.innerHTML=`<div class="empty"><div class="big">Nothing logged yet today</div><div class="small">Tap a button above to start the day's journal.</div></div>`;
+  }else{
+    tl.innerHTML=items.map(renderCard).join('');
+  }
+  renderBanner();
+}
+function itemTagLine(item){
+  const list=(item.tags||[]).map(t=>t==='Alcohol'&&item.alcohol?alcLabel(item.alcohol):t);
+  return list.length?`<div class="tags">${list.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`:'';
+}
+function renderCard(it){
+  if(it._k==='episode'){
+    const col=`var(${sevColor(it.severity)})`;
+    const rem=it.remedies&&it.remedies.length?`<div class="meta">Remedies: ${it.remedies.map(r=>esc(r.name)+(r.effect?' ('+effLabel(r.effect)+')':'')).join(', ')}</div>`:'';
+    const dur=it.duration?` · ${esc(it.duration)}`:'';
+    return `<div class="entry episode" onclick="openEpisode('${it.id}')">
+      <button class="del" onclick="event.stopPropagation();delItem('${it.id}','episode')">✕</button>
+      <div class="dot" style="background:${col}"></div>
+      <div class="body">
+        <div class="row1">
+          <span class="sev-badge" style="background:${col}">Flare · ${it.severity}/10</span>
+          <span class="time">${fmtTime(it.datetime)}${dur}</span>
+        </div>
+        ${it.symptoms&&it.symptoms.length?`<div class="tags">${it.symptoms.map(s=>`<span class="tag symp">${esc(s)}</span>`).join('')}</div>`:''}
+        ${rem}
+        ${it.notes?`<div class="meta">${esc(it.notes)}</div>`:''}
+        <div class="edit-hint">Tap to edit</div>
+      </div></div>`;
+  }
+  if(it._k==='meal'||it.type==='meal'){
+    return `<div class="entry meal" onclick="openMeal(null,'${it.id}')">
+      <button class="del" onclick="event.stopPropagation();delItem('${it.id}','meal')">✕</button>
+      <div class="dot"></div>
+      <div class="body">
+        <div class="row1"><span class="name">${esc(it.mealType||'Meal')}</span><span class="time">${fmtTime(it.datetime)}</span></div>
+        ${it.items.map((item,ix)=>`
+          <div class="mline">
+            <div class="mtxt">
+              <div class="mln">${esc(item.name)}</div>
+              ${item.portion?`<div class="mport">${esc(item.portion)}</div>`:''}
+              ${itemTagLine(item)}
+            </div>
+            ${it.items.length>1?`<button class="mlx" onclick="event.stopPropagation();delMealItem('${it.id}',${ix})">✕</button>`:''}
+          </div>`).join('')}
+        ${it.notes?`<div class="meta">${esc(it.notes)}</div>`:''}
+        <div class="edit-hint">Tap to edit</div>
+      </div></div>`;
+  }
+  const editFn=it.type==='drink'?`openDrink('${it.id}')`:`openMeal(null,'${it.id}')`;
+  return `<div class="entry ${it.type}" onclick="${editFn}">
+    <button class="del" onclick="event.stopPropagation();delItem('${it.id}','${it.type}')">✕</button>
+    <div class="dot"></div>
+    <div class="body">
+      <div class="row1"><span class="name">${esc(it.name)}</span><span class="time">${fmtTime(it.datetime)}</span></div>
+      ${it.portion?`<div class="meta">${esc(it.portion)}</div>`:''}
+      ${it.notes?`<div class="meta">${esc(it.notes)}</div>`:''}
+      ${itemTagLine(it)}
+      <div class="edit-hint">Tap to edit</div>
+    </div></div>`;
+}
+function effLabel(e){return (EFFECTS.find(x=>x[0]===e)||[,e])[1];}
+function delItem(id,kind){
+  if(kind==='episode')db.episodes=db.episodes.filter(e=>e.id!==id);
+  else db.entries=db.entries.filter(e=>e.id!==id);
+  save();refreshViews();
+}
+function delMealItem(id,ix){
+  const e=db.entries.find(x=>x.id===id);
+  if(!e||!e.items)return;
+  e.items.splice(ix,1);
+  if(!e.items.length)db.entries=db.entries.filter(x=>x.id!==id);
+  save();refreshViews();
+}
+
+/* ---------- calendar ---------- */
+let calY,calM;
+function calShift(d){calM+=d;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendar();}
+function renderCalendar(){
+  const now=new Date();
+  if(calY===undefined){calY=now.getFullYear();calM=now.getMonth();}
+  document.getElementById('cal-month').textContent=new Date(calY,calM,1).toLocaleDateString([],{month:'long',year:'numeric'});
+
+  const epByDay={};
+  db.episodes.forEach(e=>{const k=dayKey(e.datetime);(epByDay[k]=epByDay[k]||[]).push(e);});
+  const logDays=new Set(db.entries.map(e=>dayKey(e.datetime)));
+  const medDays=new Set();
+  db.medications.forEach(m=>{if(m.startDate)medDays.add(m.startDate);if(m.endDate)medDays.add(m.endDate);});
+
+  const first=new Date(calY,calM,1).getDay();
+  const days=new Date(calY,calM+1,0).getDate();
+  const tk=todayKey();
+  let html='';
+  for(let i=0;i<first;i++)html+='<div class="day blank"></div>';
+  for(let d=1;d<=days;d++){
+    const k=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const eps=epByDay[k];
+    let cls='day',style='',dot='';
+    if(k===tk)cls+=' today';
+    if(eps){
+      const maxSev=Math.max(...eps.map(e=>e.severity));
+      cls+=' has-ep';
+      style=`background:var(${sevColor(maxSev)})`;
+      dot=eps.length>1?`<span class="epdot"></span>`:'';
+    }else if(logDays.has(k)){
+      dot=`<span class="logdot"></span>`;
+    }
+    if(medDays.has(k))dot+=`<span class="medDot"></span>`;
+    html+=`<div class="${cls}" style="${style}" onclick="dayDetail('${k}')">${d}${dot}</div>`;
+  }
+  document.getElementById('cal-days').innerHTML=html;
+
+  const monthEps=db.episodes.filter(e=>{const dt=new Date(e.datetime);return dt.getFullYear()===calY&&dt.getMonth()===calM;});
+  const epDays=new Set(monthEps.map(e=>dayKey(e.datetime))).size;
+  const avg=monthEps.length?(monthEps.reduce((s,e)=>s+e.severity,0)/monthEps.length).toFixed(1):'—';
+  document.getElementById('cal-summary').innerHTML=`
+    <div class="stat"><div class="n">${epDays}</div><div class="l">day${epDays===1?'':'s'} with a flare-up this month</div></div>
+    <div class="stat"><div class="n">${avg}</div><div class="l">average severity (of 10)</div></div>`;
+}
+function dayDetail(k){
+  const eps=db.episodes.filter(e=>dayKey(e.datetime)===k).sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+  const ents=db.entries.filter(e=>dayKey(e.datetime)===k).sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+  const startsToday=db.medications.filter(m=>m.startDate===k);
+  const stopsToday=db.medications.filter(m=>m.endDate===k);
+  const usedStart=new Set();
+  const medEvents=[];
+  stopsToday.forEach(s=>{
+    const match=startsToday.find(st=>st.name===s.name&&!usedStart.has(st.id));
+    if(match){usedStart.add(match.id);medEvents.push({change:true,name:s.name,from:s.dose,to:match.dose});}
+    else medEvents.push({stop:true,name:s.name});
+  });
+  startsToday.forEach(st=>{if(!usedStart.has(st.id))medEvents.push({stop:false,name:st.name,dose:st.dose});});
+  openSheetUI(new Date(k+'T12:00').toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'}));
+  let body='';
+  if(!eps.length&&!ents.length&&!medEvents.length){
+    body=`<div class="empty"><div class="big">Nothing logged</div><div class="small">No entries on this day.</div></div>`;
+  }else{
+    const all=[...ents.map(e=>({...e,_k:e.type})),...eps.map(e=>({...e,_k:'episode'}))].sort((a,b)=>new Date(a.datetime)-new Date(b.datetime));
+    body=`<div class="timeline">${medEvents.map(medEventCard).join('')}${all.map(renderCard).join('')}</div>`;
+  }
+  document.getElementById('sheet-body').innerHTML=body+'<div style="height:12px"></div>';
+}
+function medEventCard(ev){
+  let title,meta='';
+  if(ev.change){
+    title='Changed '+esc(ev.name);
+    meta=`<div class="meta">${ev.from?esc(ev.from):'—'} → ${ev.to?esc(ev.to):'—'}</div>`;
+  }else{
+    title=(ev.stop?'Stopped ':'Started ')+esc(ev.name);
+    if(ev.dose&&!ev.stop)meta=`<div class="meta">${esc(ev.dose)}</div>`;
+  }
+  return `<div class="entry" style="border-color:var(--honey-tint);background:linear-gradient(180deg,#fff,#FFFBF3);cursor:default">
+    <div class="dot" style="background:var(--honey)"></div>
+    <div class="body"><div class="row1"><span class="name">${title}</span><span class="time">med change</span></div>${meta}</div></div>`;
+}
+
+/* ---------- insights ---------- */
+function tagUnitsOf(en){
+  if(en.type==='meal')return en.items||[];
+  return [{tags:en.tags||[],alcohol:en.alcohol||null}];
+}
+function renderInsights(){
+  const box=document.getElementById('insights-body');
+  if(!db.episodes.length){
+    box.innerHTML=`<div class="empty"><div class="big">No patterns yet</div><div class="small">Once a few flare-ups are logged, trends will show up here.</div></div>`;
+    return;
+  }
+  const now=new Date();
+  const weekAgo=new Date(now-7*864e5),monthAgo=new Date(now-30*864e5);
+  const epWeek=db.episodes.filter(e=>new Date(e.datetime)>=weekAgo).length;
+  const epMonth=db.episodes.filter(e=>new Date(e.datetime)>=monthAgo).length;
+  const avg=(db.episodes.reduce((s,e)=>s+e.severity,0)/db.episodes.length).toFixed(1);
+
+  const epDates=db.episodes.map(e=>new Date(e.datetime).getTime());
+  const preCount={};
+  db.entries.forEach(en=>{
+    const t=new Date(en.datetime).getTime();
+    const near=epDates.some(ed=>ed-t>=0&&ed-t<=24*36e5);
+    if(!near)return;
+    tagUnitsOf(en).forEach(u=>{
+      (u.tags||[]).forEach(tag=>{preCount[tag]=(preCount[tag]||0)+1;});
+      if(u.alcohol&&u.alcohol.type){
+        const k='Alcohol · '+u.alcohol.type;
+        preCount[k]=(preCount[k]||0)+1;
+        (u.alcohol.spirits||[]).forEach(s=>{const sk='Cocktail · '+s;preCount[sk]=(preCount[sk]||0)+1;});
+      }
+    });
+  });
+  const topTags=Object.entries(preCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  const remStat={};
+  db.episodes.forEach(e=>(e.remedies||[]).forEach(r=>{
+    if(!r.effect)return;
+    const s=remStat[r.name]=remStat[r.name]||{lot:0,little:0,none:0,worse:0,total:0};
+    s.total++;
+    if(r.effect==='helped_a_lot')s.lot++;else if(r.effect==='helped_a_little')s.little++;else if(r.effect==='no_effect')s.none++;else s.worse++;
+  }));
+  const topRem=Object.entries(remStat).sort((a,b)=>(b[1].lot*2+b[1].little)-(a[1].lot*2+a[1].little)).slice(0,5);
+
+  let html=`
+  <div class="cal-summary" style="margin-bottom:14px">
+    <div class="stat"><div class="n">${epWeek}</div><div class="l">flare-up${epWeek===1?'':'s'} in the last 7 days</div></div>
+    <div class="stat"><div class="n">${epMonth}</div><div class="l">in the last 30 days</div></div>
+    <div class="stat"><div class="n">${avg}</div><div class="l">average severity</div></div>
+    <div class="stat"><div class="n">${db.episodes.length}</div><div class="l">flare-ups logged in total</div></div>
+  </div>`;
+
+  if(topTags.length){
+    const max=topTags[0][1];
+    html+=`<div class="card"><h3>Common before a flare-up</h3><div class="csub">Trigger tags eaten or drunk in the 24 hours before an episode</div>
+      ${topTags.map(([t,n])=>`<div class="bar-row"><div class="bl">${esc(t)}</div><div class="bar-track"><div class="bar-fill rose" style="width:${Math.max(18,n/max*100)}%"><span>${n}×</span></div></div></div>`).join('')}
+    </div>`;
+  }
+  if(topRem.length){
+    html+=`<div class="card"><h3>What's helped most</h3><div class="csub">Remedies ranked by how often they helped</div>
+      ${topRem.map(([name,s])=>{const score=Math.round((s.lot+s.little)/s.total*100);return `<div class="bar-row"><div class="bl">${esc(name)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(18,score)}%"><span>${score}%</span></div></div></div>`;}).join('')}
+    </div>`;
+  }
+  html+=`<div class="disclaimer">These are simple counts to help you notice patterns — not medical conclusions. For a real analysis of what tends to trigger episodes, use <b>Data → Download for AI analysis</b> and share the file with an assistant. Always check anything meaningful with a doctor.</div>`;
+  box.innerHTML=html;
+}
+
+/* ---------- medications ---------- */
+function renderMeds(){
+  const cur=db.medications.filter(m=>!m.endDate).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));
+  const past=db.medications.filter(m=>m.endDate).sort((a,b)=>new Date(b.endDate)-new Date(a.endDate));
+  let html=`<button class="add-remedy" style="margin-bottom:18px" onclick="openMed()">+ Add a medication</button>`;
+  html+=`<div class="sechead"><h2>Currently taking</h2><span class="count">${cur.length||''}</span></div>`;
+  html+= cur.length ? cur.map(m=>medCard(m,false)).join('')
+    : `<div class="empty"><div class="big">No current medications</div><div class="small">Add anything taken regularly — prescription or over-the-counter.</div></div>`;
+  if(past.length){
+    html+=`<div class="sechead" style="margin-top:24px"><h2>History</h2></div>`;
+    html+=past.map(m=>medCard(m,true)).join('');
+  }
+  html+=`<div class="disclaimer" style="margin-top:16px">Medications and the dates they start, stop, or change dose are included in your export, so an AI can check whether flare-ups shifted around a med change.</div>`;
+  document.getElementById('meds-body').innerHTML=html;
+}
+function medCard(m,past){
+  const sub=[m.dose,m.frequency].filter(Boolean).join(' · ');
+  const dates=past?`${fmtDate(m.startDate)} – ${fmtDate(m.endDate)}`:`Since ${fmtDate(m.startDate)}`;
+  const stillActive=past&&db.medications.some(x=>!x.endDate&&x.name===m.name);
+  return `<div class="med ${past?'past':''}">
+    <div class="pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7-7l7 7a5 5 0 0 1-7 7zM7 7l7 7"/></svg></div>
+    <div class="mbody">
+      <div class="mname">${esc(m.name)}</div>
+      ${sub?`<div class="mdose">${esc(sub)}</div>`:''}
+      <div class="mdate">${dates}</div>
+      ${stillActive?`<div class="tag" style="display:inline-block;margin-top:7px">Earlier dose — still taking this med</div>`:''}
+      ${m.notes?`<div class="mnote">${esc(m.notes)}</div>`:''}
+      <div class="mact">
+        ${past?'':`<button class="mbtn change" onclick="openDoseChange('${m.id}')">Change dose</button>`}
+        ${past?'':`<button class="mbtn stop" onclick="stopMed('${m.id}')">Stopped taking</button>`}
+        <button class="mbtn" onclick="openMed('${m.id}')">Edit</button>
+        <button class="mbtn" onclick="delMed('${m.id}')">Delete</button>
+      </div>
+    </div></div>`;
+}
+function openMed(id){
+  const m=id?db.medications.find(x=>x.id===id):null;
+  openSheetUI(m?'Edit medication':'Add medication');
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="field"><label>Medication name</label>
+      <input class="inp" id="m-name" placeholder="e.g. Omeprazole, Tums" value="${m?esc(m.name):''}" autocomplete="off"></div>
+    <div class="field"><label>Dose <span class="hint">optional</span></label>
+      <input class="inp" id="m-dose" placeholder="e.g. 20 mg, 2 tablets" value="${m&&m.dose?esc(m.dose):''}" autocomplete="off"></div>
+    <div class="field"><label>How often <span class="hint">optional</span></label>
+      <input class="inp" id="m-freq" placeholder="e.g. Once daily, as needed" value="${m&&m.frequency?esc(m.frequency):''}" autocomplete="off"></div>
+    <div class="field"><label>Started on</label>
+      <input class="inp" type="date" id="m-start" value="${m?m.startDate:todayStr()}"></div>
+    ${m&&m.endDate?`<div class="field"><label>Stopped on <span class="hint">clear to mark as current again</span></label><input class="inp" type="date" id="m-end" value="${m.endDate}"></div>`:''}
+    <div class="field"><label>Note <span class="hint">optional — e.g. what it's for</span></label>
+      <textarea class="inp" id="m-note" placeholder="Reason, prescriber, anything useful">${m&&m.notes?esc(m.notes):''}</textarea></div>
+    <div class="save-bar"><button class="save" onclick="saveMed(${m?`'${m.id}'`:'null'})">${m?'Save changes':'Add medication'}</button></div>`;
+  setTimeout(()=>document.getElementById('m-name').focus(),350);
+}
+function saveMed(id){
+  const name=document.getElementById('m-name').value.trim();
+  if(!name){toast('Add a name first');return;}
+  const data={
+    name,
+    dose:document.getElementById('m-dose').value.trim(),
+    frequency:document.getElementById('m-freq').value.trim(),
+    startDate:document.getElementById('m-start').value||todayStr(),
+    notes:document.getElementById('m-note').value.trim()
+  };
+  if(id){
+    const m=db.medications.find(x=>x.id===id);
+    Object.assign(m,data);
+    const endEl=document.getElementById('m-end');
+    if(endEl)m.endDate=endEl.value?endEl.value:null;
+  }else{
+    db.medications.push({id:uid(),endDate:null,...data});
+  }
+  save();closeSheet();renderMeds();
+  toast(id?'Medication updated':'Medication added');
+}
+function openDoseChange(id){
+  const m=db.medications.find(x=>x.id===id);if(!m)return;
+  openSheetUI('Change dose');
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="field"><label>${esc(m.name)}</label>
+      <div class="mdose" style="color:var(--ink-soft);font-size:13.5px">Current: ${esc([m.dose,m.frequency].filter(Boolean).join(' · ')||'no dose recorded')}</div></div>
+    <div class="field"><label>New dose</label>
+      <input class="inp" id="dc-dose" placeholder="e.g. 40 mg, 2 tablets" value="${m.dose?esc(m.dose):''}" autocomplete="off"></div>
+    <div class="field"><label>How often <span class="hint">optional</span></label>
+      <input class="inp" id="dc-freq" placeholder="e.g. Once daily" value="${m.frequency?esc(m.frequency):''}" autocomplete="off"></div>
+    <div class="field"><label>Effective from</label>
+      <input class="inp" type="date" id="dc-date" value="${todayStr()}">
+      <div class="hint" style="margin-top:6px">The old dose stays in history up to this date; the new dose starts here.</div></div>
+    <div class="field"><label>Note <span class="hint">optional</span></label>
+      <textarea class="inp" id="dc-note" placeholder="Why it changed, who advised it, etc."></textarea></div>
+    <div class="save-bar"><button class="save" onclick="saveDoseChange('${id}')">Save dose change</button></div>`;
+  setTimeout(()=>document.getElementById('dc-dose').focus(),350);
+}
+function saveDoseChange(id){
+  const m=db.medications.find(x=>x.id===id);if(!m)return;
+  const newDose=document.getElementById('dc-dose').value.trim();
+  const newFreq=document.getElementById('dc-freq').value.trim();
+  const date=document.getElementById('dc-date').value||todayStr();
+  const note=document.getElementById('dc-note').value.trim();
+  if(!newDose&&!newFreq){toast('Enter the new dose first');return;}
+  if(date<m.startDate){toast('That date is before this med started');return;}
+  m.endDate=date;
+  db.medications.push({id:uid(),name:m.name,dose:newDose,frequency:newFreq,startDate:date,endDate:null,notes:note});
+  save();closeSheet();renderMeds();
+  toast('Dose change saved');
+}
+function stopMed(id){
+  const m=db.medications.find(x=>x.id===id);if(!m)return;
+  if(!confirm('Mark "'+m.name+'" as stopped today? You can adjust the date afterward with Edit.'))return;
+  m.endDate=todayStr();save();renderMeds();toast('Marked as stopped');
+}
+function delMed(id){
+  const m=db.medications.find(x=>x.id===id);
+  if(!confirm('Delete "'+(m?m.name:'this medication')+'" and its dates? This also removes it from your history.'))return;
+  db.medications=db.medications.filter(x=>x.id!==id);
+  save();renderMeds();toast('Medication deleted');
+}
+
+/* ---------- data / backup ---------- */
+function renderData(){
+  const s=db.settings;
+  const last=s.lastBackup?new Date(s.lastBackup):null;
+  const days=last?Math.floor((Date.now()-last)/864e5):null;
+  const due=!last||days>=7;
+  const el=document.getElementById('backup-status');
+  el.className='backup-status '+(due?'due':'ok');
+  el.innerHTML=`
+    <div class="ico">${due?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'}</div>
+    <div class="bt">${last?(days===0?'Backed up today':'Last backup '+days+' day'+(days===1?'':'s')+' ago'):'No backup yet'}</div>
+    <div class="bs">${due?'It\'s a good time to save a copy.':'You\'re all set.'}</div>`;
+  const sw=document.getElementById('reminder-switch');
+  sw.classList.toggle('on',s.weeklyReminder!==false);
+}
+function currentData(){
+  return {app:'Settle',version:2,exported:new Date().toISOString(),medications:db.medications,entries:db.entries,episodes:db.episodes};
+}
+function download(obj,name){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function stamp(){const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+function backupNow(){
+  download(currentData(),`settle-backup-${stamp()}.json`);
+  db.settings.lastBackup=new Date().toISOString();save();renderData();renderBanner();
+  toast('Backup saved to your device');
+}
+function exportForAI(){
+  download(currentData(),`settle-data-${stamp()}.json`);
+  db.settings.lastBackup=new Date().toISOString();save();renderData();
+  toast('Data downloaded — now copy the prompt');
+}
+const AI_PROMPT=`You are helping analyze a food, drink, medication, and stomach-flare-up journal from an app called Settle. Attached is a JSON file with three lists:
+
+- "entries": meals and drinks. A meal has type "meal", a mealType (Breakfast/Lunch/Dinner/Snack), a timestamp, and an "items" array where each item has its own name, portion, and optional trigger tags. A drink (and some older single-food entries) has a name, portion, timestamp, and tags directly. Wherever the Alcohol tag is used there may also be an "alcohol" object with the type (beer, wine, spirits, cocktail...), a subtype (e.g. red wine, bourbon), a "spirits" array for cocktails listing every spirit in the drink, and the specific drink name.
+- "episodes": stomach flare-ups, each with a severity 1-10, symptoms, duration, remedies tried and whether each helped, timestamp, and notes.
+- "medications": each with a name, dose, frequency, a startDate, and an endDate that is null if it is still being taken; the same medication can appear as several dated entries when its dose changed over time.
+
+Please analyze it for possible correlations, and report:
+1. Which foods, drinks, meal items, or trigger tags most often appear in the hours (try 0-6h and 6-24h) before a flare-up, versus on calm days. Analyze meal items individually, not whole meals.
+2. Whether portion size, meal type, time of day, or specific ingredients seem to matter. For alcohol, break the analysis down by type, subtype, and cocktail spirits (e.g. does wine correlate with flare-ups more than beer, red more than white, or drinks containing tequila more than those with vodka).
+3. Whether flare-up frequency or severity changed around the dates a medication was started, stopped, or had its dose changed.
+4. Any recurring patterns in symptoms or how long episodes last.
+5. Which remedies tended to help most, and any that seemed to make things worse.
+6. A short, plain-language summary of the most likely triggers and helpful factors to discuss with a doctor.
+
+Be clear about what the data suggests versus what it can't prove, and note where there isn't enough data yet. This is not a medical diagnosis.`;
+function copyAIPrompt(){
+  navigator.clipboard.writeText(AI_PROMPT).then(()=>toast('Prompt copied — paste it, then attach the file')).catch(()=>{
+    openSheetUI('Analysis prompt');
+    document.getElementById('sheet-body').innerHTML=`<div class="field"><label>Copy this, paste it into an AI, then attach your downloaded file</label><div class="prompt-box">${esc(AI_PROMPT)}</div></div><div style="height:10px"></div>`;
+  });
+}
+function importData(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d.entries&&!d.episodes&&!d.medications)throw 0;
+      if(!confirm('Restore this backup? It will replace everything currently in the app.'))return;
+      db.entries=d.entries||[];db.episodes=d.episodes||[];db.medications=d.medications||[];
+      db.settings.lastBackup=new Date().toISOString();
+      save();renderToday();renderData();
+      toast('Backup restored');
+    }catch(e){toast('That file could not be read');}
+  };
+  r.readAsText(f);ev.target.value='';
+}
+function toggleReminder(){
+  db.settings.weeklyReminder=db.settings.weeklyReminder===false?true:false;
+  save();renderData();
+  toast(db.settings.weeklyReminder?'Weekly reminder on':'Weekly reminder off');
+}
+function clearAll(){
+  if(!confirm('Erase ALL entries, flare-ups, and medications? This cannot be undone. Please back up first.'))return;
+  if(!confirm('Are you absolutely sure? Everything will be gone.'))return;
+  db.entries=[];db.episodes=[];db.medications=[];save();renderToday();renderData();
+  toast('All data erased');
+}
+
+/* ---------- backup banner ---------- */
+function renderBanner(){
+  const wrap=document.getElementById('backup-banner');
+  const s=db.settings;
+  if(s.weeklyReminder===false){wrap.innerHTML='';return;}
+  const last=s.lastBackup?new Date(s.lastBackup):null;
+  const days=last?Math.floor((Date.now()-last)/864e5):999;
+  const hasData=db.entries.length||db.episodes.length||db.medications.length;
+  if(!hasData||days<7||s.bannerDismissed===todayKey()){wrap.innerHTML='';return;}
+  wrap.innerHTML=`<div class="banner">
+    <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zM9 12l3 3 3-3"/></svg></div>
+    <div class="txt"><b>Time to back up.</b> ${last?'It\'s been '+days+' days.':'You haven\'t saved a copy yet.'}</div>
+    <button class="act" onclick="backupNow()">Back up</button>
+    <button class="x" onclick="dismissBanner()">✕</button>
+  </div>`;
+}
+function dismissBanner(){db.settings.bannerDismissed=todayKey();save();renderBanner();}
+
+/* ---------- name / welcome ---------- */
+function openWelcome(firstTime){
+  openSheetUI(firstTime?'Welcome to Settle':'Change name');
+  document.getElementById('sheet-body').innerHTML=`
+    ${firstTime?`<div style="font-size:14.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:16px">A quiet place to jot down meals, drinks, and how the stomach's doing — and spot what's behind the bad days.</div>`:''}
+    <div class="field">
+      <label>What's your name?</label>
+      <input class="inp" id="w-name" placeholder="First name is plenty" value="${esc(db.settings.name||'')}" autocomplete="off" maxlength="30">
+      <div class="hint" style="margin-top:6px">Just for the greeting — it never leaves this device.</div>
+    </div>
+    <div class="save-bar">
+      <button class="save" onclick="saveName()">Save</button>
+      ${firstTime?`<button style="width:100%;padding:13px;font-weight:600;color:var(--ink-faint);font-size:14px" onclick="skipName()">Skip for now</button>`:''}
+    </div>`;
+  setTimeout(()=>document.getElementById('w-name').focus(),400);
+}
+function saveName(){
+  const n=document.getElementById('w-name').value.trim();
+  db.settings.name=n||null;
+  db.settings.askedName=true;
+  save();closeSheet();renderToday();
+  if(n)toast('Nice to meet you, '+n);
+}
+function skipName(){
+  db.settings.askedName=true;
+  save();closeSheet();
+}
+
+/* ---------- init ---------- */
+renderToday();
+if(!db.settings.name&&!db.settings.askedName){
+  setTimeout(()=>openWelcome(true),600);
+}
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
