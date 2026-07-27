@@ -466,6 +466,8 @@ const DRINK_TRIGGERS=['Caffeine','Alcohol','Carbonated','Acidic','Citrus','Dairy
 const SYMPTOMS=['Burning','Sharp pain','Nausea','Bloating','Reflux / heartburn','Cramping','Gas','Belching','Fullness','Appetite loss','Vomiting'];
 const EFFECTS=[['helped_a_lot','Helped a lot'],['helped_a_little','Helped a little'],['no_effect','No effect'],['made_worse','Made it worse']];
 const MEALTYPES=['Breakfast','Lunch','Dinner','Snack'];
+const FOOD_UNITS=['count','bites','pieces','slices','cups','bowls','plates','servings','tablespoons','handfuls','oz'];
+const DRINK_UNITS=['oz','cups','glasses','mugs','cans','bottles','ml','liters','count'];
 const ALC_TYPES=['Beer','Wine','Spirits','Cocktail','Cider','Seltzer','Other'];
 const ALC_SUB={
   'Wine':['Red','White','Rosé','Sparkling','Dessert / fortified'],
@@ -526,10 +528,69 @@ function closeSheet(){
 /* ---------- generic chip helpers ---------- */
 function tog(el){el.classList.toggle('on');}
 function pickOne(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
-function pickPortion(el,val,inputId){
+const UNIT_SINGULAR={bites:'bite',pieces:'piece',slices:'slice',cups:'cup',bowls:'bowl',plates:'plate',servings:'serving',tablespoons:'tablespoon',handfuls:'handful',glasses:'glass',mugs:'mug',cans:'can',bottles:'bottle',liters:'liter'};
+function unitLabel(n,u){
+  if(u==='count')return '';
+  return n===1?(UNIT_SINGULAR[u]||u):u;
+}
+function normUnit(t){
+  t=(t||'').toLowerCase().replace(/^of /,'').trim();
+  if(!t)return 'count';
+  const all=FOOD_UNITS.concat(DRINK_UNITS);
+  if(all.indexOf(t)>=0)return t;
+  for(const plural in UNIT_SINGULAR){if(UNIT_SINGULAR[plural]===t)return plural;}
+  if(t==='ounce'||t==='ounces')return 'oz';
+  return null;
+}
+function parsePortion(p){
+  const res={num:'',unit:null,chip:null,raw:''};
+  if(!p)return res;
+  if(['Small','Medium','Large'].indexOf(p)>=0){res.chip=p;return res;}
+  const m=p.match(/^([\d.]+)\s*(.*)$/);
+  if(m){
+    const u=normUnit(m[2]);
+    if(u){res.num=m[1];res.unit=u;return res;}
+  }
+  res.raw=p;
+  return res;
+}
+function unitOptions(units,sel){
+  return units.map(u=>`<option value="${u}" ${u===sel?'selected':''}>${u==='count'?'(no unit)':u}</option>`).join('');
+}
+function pickPortionChip(el,numId){
+  const was=el.classList.contains('on');
   el.parentElement.querySelectorAll('.pchip').forEach(c=>c.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById(inputId).value=val;
+  if(!was){
+    el.classList.add('on');
+    document.getElementById(numId).value='';
+  }
+}
+function clearPortionChips(chipsId){
+  const c=document.getElementById(chipsId);
+  if(c)c.querySelectorAll('.pchip').forEach(x=>x.classList.remove('on'));
+}
+function composePortion(numId,unitId,chipsId,rawId){
+  const n=document.getElementById(numId).value.trim();
+  if(n){
+    const lbl=unitLabel(parseFloat(n),document.getElementById(unitId).value);
+    return lbl?n+' '+lbl:n;
+  }
+  const chip=document.querySelector('#'+chipsId+' .pchip.on');
+  if(chip)return chip.textContent;
+  const raw=document.getElementById(rawId);
+  return raw?raw.value:'';
+}
+function portionFieldHTML(prefix,portion,units,defUnit){
+  const pp=parsePortion(portion);
+  return `
+    <div style="display:flex;gap:8px;margin-top:9px">
+      <input class="inp" type="number" inputmode="decimal" min="0" step="any" id="${prefix}-pnum" placeholder="How much? e.g. 2" value="${pp.num}" style="flex:1.2" oninput="clearPortionChips('${prefix}-pch')">
+      <select class="inp" id="${prefix}-punit" style="flex:1">${unitOptions(units,pp.unit||defUnit)}</select>
+    </div>
+    <input type="hidden" id="${prefix}-praw" value="${esc(pp.raw)}">
+    <div class="pchips" id="${prefix}-pch">
+      ${['Small','Medium','Large'].map(p=>`<div class="pchip ${pp.chip===p?'on':''}" onclick="pickPortionChip(this,'${prefix}-pnum')">${p}</div>`).join('')}
+    </div>`;
 }
 function addCustomTag(containerId){
   const name=prompt('Add a tag');
@@ -851,10 +912,7 @@ function addMealItem(pre){
       <button class="irm" onclick="removeMealItem(${i})">Remove</button>
     </div>
     <input class="inp" id="mi-name-${i}" placeholder="${n===0?'e.g. Grilled chicken':'e.g. Mashed potatoes'}" value="${pre.name?esc(pre.name):''}" autocomplete="off">
-    <input class="inp" id="mi-portion-${i}" placeholder="How much? e.g. 1 plate, half a cup" value="${pre.portion?esc(pre.portion):''}" autocomplete="off" style="margin-top:9px">
-    <div class="pchips">
-      ${['Small','Medium','Large'].map(p=>`<div class="pchip ${pre.portion===p?'on':''}" onclick="pickPortion(this,'${p}','mi-portion-${i}')">${p}</div>`).join('')}
-    </div>
+    ${portionFieldHTML('mi-'+i,pre.portion||'',FOOD_UNITS,'count')}
     <div style="margin-top:11px">
       <label class="sublab">Trigger tags <span class="hint">optional</span></label>
       ${tagChipsHTML('mi-tags-'+i,i,TRIGGERS,pre.tags||[],pre.alcohol||null)}
@@ -876,7 +934,7 @@ function saveMeal(id){
     const ix=w.dataset.ix;
     const name=document.getElementById('mi-name-'+ix).value.trim();
     if(!name)return;
-    const item={name,portion:document.getElementById('mi-portion-'+ix).value.trim(),tags:collectTags('mi-tags-'+ix)};
+    const item={name,portion:composePortion('mi-'+ix+'-pnum','mi-'+ix+'-punit','mi-'+ix+'-pch','mi-'+ix+'-praw'),tags:collectTags('mi-tags-'+ix)};
     const alc=collectAlcohol(ix);
     if(alc)item.alcohol=alc;
     items.push(item);
@@ -919,10 +977,7 @@ function openDrink(id,pre){
     </div>
     <div class="field">
       <label>How much? <span class="hint">portion</span></label>
-      <input class="inp" id="d-portion" placeholder="e.g. 1 mug, 12 oz" value="${m&&m.portion?esc(m.portion):''}" autocomplete="off">
-      <div class="pchips">
-        ${['Small','Medium','Large'].map(p=>`<div class="pchip ${m&&m.portion===p?'on':''}" onclick="pickPortion(this,'${p}','d-portion')">${p}</div>`).join('')}
-      </div>
+      ${portionFieldHTML('d',m&&m.portion?m.portion:'',DRINK_UNITS,'oz')}
     </div>
     <div class="field">
       <label>When?</label>
@@ -950,7 +1005,7 @@ function saveDrink(id){
   if(!name){toast('Add a name first');return;}
   const entry={
     id:id||uid(),type:'drink',name,
-    portion:document.getElementById('d-portion').value.trim(),
+    portion:composePortion('d-pnum','d-punit','d-pch','d-praw'),
     datetime:new Date(document.getElementById('d-time').value).toISOString(),
     tags:collectTags('d-tags'),
     notes:document.getElementById('d-note').value.trim()
