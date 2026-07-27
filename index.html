@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#EEF3ED">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Settle">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -30,7 +30,7 @@
     --safe-t:env(safe-area-inset-top,0px);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;padding:0}
+  html,body{margin:0;padding:0;background:#EEF3ED}
   body{
     background:var(--bg); color:var(--ink);
     font-family:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
@@ -208,10 +208,9 @@
   .day.blank{background:none}
   .day.today{border-color:var(--sage);font-weight:800}
   .day.has-ep{color:#fff}
-  .day .epdot{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9)}
-  .day .logdot{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:var(--sage)}
-  .day .medDot{position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:var(--honey)}
-  .day.has-ep .medDot{background:#fff}
+  .day .epdot{position:absolute;bottom:5px;left:5px;width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9)}
+  .day .logdot{position:absolute;bottom:4px;width:6px;height:6px;border-radius:50%;background:#3E6B7E;box-shadow:0 0 0 1.5px rgba(255,255,255,.95)}
+  .day .medDot{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:#8A4F9E;box-shadow:0 0 0 1.5px rgba(255,255,255,.95)}
   .cal-legend{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:16px;font-size:11.5px;color:var(--ink-faint);font-weight:600}
   .legbar{display:flex;height:9px;width:120px;border-radius:99px;overflow:hidden}
   .legbar i{flex:1}
@@ -352,8 +351,8 @@
         <span>Severe</span>
       </div>
       <div style="text-align:center;font-size:11px;color:var(--ink-faint);margin-top:9px;font-weight:600">
-        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--honey);vertical-align:middle;margin-right:5px"></span>Med change
-        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sage);vertical-align:middle;margin:0 5px 0 14px"></span>Food/drink logged
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#8A4F9E;vertical-align:middle;margin-right:5px"></span>Med change
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#3E6B7E;vertical-align:middle;margin:0 5px 0 14px"></span>Food/drink logged
       </div>
     </div>
     <div class="cal-summary" id="cal-summary"></div>
@@ -634,21 +633,35 @@ function alcLabel(a){
 
 /* ---------- voice logging ---------- */
 let voiceRec=null,voiceText='',pendingVoice=null;
-function startVoice(){
+async function startVoice(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){toast("Voice input isn't supported in this browser");return;}
-  voiceText='';
   openSheetUI('Say the meal');
   document.getElementById('sheet-body').innerHTML=`
     <div class="v-mic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg></div>
-    <div class="v-live faint" id="v-live">Listening…</div>
-    <div class="v-tip">Say it naturally, like<br><b>"Dinner — grilled chicken, a bowl of rice, and a large sweet tea"</b><br>You'll get to check everything before it saves.</div>
-    <div class="save-bar"><button class="save" onclick="finishVoice()">Done — review it</button></div>`;
+    <div class="v-live faint" id="v-live">Getting the microphone ready…</div>
+    <div class="v-tip">Say it naturally, like<br><b>"Dinner — grilled chicken, a bowl of rice, and a large sweet tea"</b><br>You'll get to fix the words before anything saves.</div>
+    <div class="save-bar"><button class="save" onclick="finishVoice()">Stop — check the words</button></div>`;
+  try{
+    if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      stream.getTracks().forEach(t=>t.stop());
+    }
+  }catch(err){
+    const live=document.getElementById('v-live');
+    if(live)live.textContent='Microphone access was blocked. Allow it for this site in your browser settings, then try again.';
+    return;
+  }
+  voiceText='';
   try{
     voiceRec=new SR();
     voiceRec.continuous=true;
     voiceRec.interimResults=true;
     let finalT='';
+    voiceRec.onstart=()=>{
+      const live=document.getElementById('v-live');
+      if(live&&!voiceText)live.textContent='Listening…';
+    };
     voiceRec.onresult=e=>{
       let interim='';
       for(let i=e.resultIndex;i<e.results.length;i++){
@@ -661,7 +674,10 @@ function startVoice(){
       if(live){live.textContent=voiceText||'Listening…';live.classList.toggle('faint',!voiceText);}
     };
     voiceRec.onerror=e=>{
-      if(e.error==='not-allowed'||e.error==='service-not-allowed'){toast('Microphone permission was denied');closeSheet();}
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        const live=document.getElementById('v-live');
+        if(live)live.textContent='Microphone permission was denied. Allow it for this site in your browser settings, then try again.';
+      }
     };
     voiceRec.start();
   }catch(err){toast('Could not start the microphone');}
@@ -669,8 +685,20 @@ function startVoice(){
 function stopVoiceRec(){if(voiceRec){try{voiceRec.stop();}catch(e){}voiceRec=null;}}
 function finishVoice(){
   stopVoiceRec();
-  const t=voiceText.trim();
-  if(!t){toast("Didn't catch anything — try again");return;}
+  document.getElementById('sheet-title').textContent='Check the words';
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="field">
+      <label>What was heard <span class="hint">fix anything before continuing</span></label>
+      <textarea class="inp" id="v-edit" style="min-height:96px" placeholder="Or just type it here — e.g. dinner, grilled chicken and rice">${esc(voiceText.trim())}</textarea>
+    </div>
+    <div class="save-bar">
+      <button class="save" onclick="voiceToMeal()">Looks right — review the items</button>
+      <button style="width:100%;padding:13px;font-weight:600;color:var(--ink-soft);font-size:14px" onclick="startVoice()">Record again</button>
+    </div>`;
+}
+function voiceToMeal(){
+  const t=document.getElementById('v-edit').value.trim();
+  if(!t){toast('Type or record what they had first');return;}
   const p=parseVoiceMeal(t);
   if(!p.items.length){toast("Couldn't pick out any items — try rephrasing");return;}
   pendingVoice=p;
@@ -938,7 +966,21 @@ function saveDrink(id){
 }
 
 /* ---------- episode (with editing) ---------- */
-let remedyCount=0;
+let remedyCount=0,_commonRemedies=[];
+function commonRemedies(){
+  const map={};
+  db.episodes.forEach(e=>(e.remedies||[]).forEach(r=>{
+    const k=(r.name||'').trim().toLowerCase();
+    if(!k)return;
+    if(!map[k])map[k]={c:0,n:r.name};
+    map[k].c++;map[k].n=r.name;
+  }));
+  return Object.values(map).sort((a,b)=>b.c-a.c).slice(0,6).map(x=>x.n);
+}
+function quickRemedy(i){
+  const n=_commonRemedies[i];if(!n)return;
+  addRemedy({name:n});
+}
 function openEpisode(id){
   const m=id?db.episodes.find(e=>e.id===id):null;
   openSheetUI(id?'Edit flare-up':'Log a flare-up');
@@ -946,6 +988,12 @@ function openEpisode(id){
   const sev=m?m.severity:5;
   const selSym=m?(m.symptoms||[]):[];
   const customSym=selSym.filter(s=>SYMPTOMS.indexOf(s)<0);
+  let durNum='',durUnit='hours';
+  if(m&&m.duration){
+    const dm=m.duration.match(/^([\d.]+)\s*(second|minute|hour|day)s?$/i);
+    if(dm){durNum=dm[1];durUnit=dm[2].toLowerCase()+'s';}
+  }
+  _commonRemedies=commonRemedies();
   document.getElementById('sheet-body').innerHTML=`
     <div class="field">
       <label>How bad is it?</label>
@@ -972,10 +1020,16 @@ function openEpisode(id){
     </div>
     <div class="field">
       <label>How long did it last? <span class="hint">optional</span></label>
-      <input class="inp" id="ep-dur" placeholder="e.g. 2 hours, most of the evening" value="${m&&m.duration?esc(m.duration):''}" autocomplete="off">
+      <div style="display:flex;gap:8px">
+        <input class="inp" type="number" inputmode="decimal" min="0" step="any" id="ep-dur-num" placeholder="e.g. 2" value="${durNum}" style="flex:1">
+        <select class="inp" id="ep-dur-unit" style="flex:1.3">
+          ${['seconds','minutes','hours','days'].map(u=>`<option value="${u}" ${u===durUnit?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </div>
     </div>
     <div class="field">
       <label>Remedies tried <span class="hint">and whether they helped</span></label>
+      ${_commonRemedies.length?`<div class="chips" style="margin-bottom:10px">${_commonRemedies.map((r,i)=>`<button class="chip" onclick="quickRemedy(${i})">${esc(r)}</button>`).join('')}</div>`:''}
       <div id="remedy-list"></div>
       <button class="add-remedy" onclick="addRemedy()">+ Add a remedy</button>
     </div>
@@ -1028,7 +1082,12 @@ function saveEpisode(id){
     datetime:new Date(document.getElementById('ep-time').value).toISOString(),
     severity:+document.getElementById('ep-sev').value,
     symptoms:collectTags('ep-symptoms'),
-    duration:document.getElementById('ep-dur').value.trim(),
+    duration:(function(){
+      const n=document.getElementById('ep-dur-num').value.trim();
+      if(!n)return '';
+      const u=document.getElementById('ep-dur-unit').value;
+      return n+' '+(parseFloat(n)===1?u.slice(0,-1):u);
+    })(),
     remedies,
     notes:document.getElementById('ep-note').value.trim()
   };
@@ -1161,9 +1220,8 @@ function renderCalendar(){
       cls+=' has-ep';
       style=`background:var(${sevColor(maxSev)})`;
       dot=eps.length>1?`<span class="epdot"></span>`:'';
-    }else if(logDays.has(k)){
-      dot=`<span class="logdot"></span>`;
     }
+    if(logDays.has(k))dot+=`<span class="logdot"></span>`;
     if(medDays.has(k))dot+=`<span class="medDot"></span>`;
     html+=`<div class="${cls}" style="${style}" onclick="dayDetail('${k}')">${d}${dot}</div>`;
   }
@@ -1208,8 +1266,8 @@ function medEventCard(ev){
     title=(ev.stop?'Stopped ':'Started ')+esc(ev.name);
     if(ev.dose&&!ev.stop)meta=`<div class="meta">${esc(ev.dose)}</div>`;
   }
-  return `<div class="entry" style="border-color:var(--honey-tint);background:linear-gradient(180deg,#fff,#FFFBF3);cursor:default">
-    <div class="dot" style="background:var(--honey)"></div>
+  return `<div class="entry" style="border-color:#E7D8EE;background:linear-gradient(180deg,#fff,#FBF7FD);cursor:default">
+    <div class="dot" style="background:#8A4F9E"></div>
     <div class="body"><div class="row1"><span class="name">${title}</span><span class="time">med change</span></div>${meta}</div></div>`;
 }
 
